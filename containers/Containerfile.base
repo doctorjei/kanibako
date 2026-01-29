@@ -1,0 +1,44 @@
+FROM ubuntu:devel
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Base system packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    ripgrep \
+    sudo \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI (not in Ubuntu's default repos)
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create agent user with passwordless sudo
+RUN groupadd -g 1000 agent \
+    && useradd -m -u 1000 -g 1000 -s /bin/bash agent \
+    && echo "agent ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent \
+    && chmod 0440 /etc/sudoers.d/agent
+
+# Install Claude Code as agent user (native binary goes to ~/.local/bin)
+USER agent
+WORKDIR /home/agent
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+ENV PATH="/home/agent/.local/bin:${PATH}"
+
+RUN mkdir -p /home/agent/workspace /home/agent/.claude
+
+WORKDIR /home/agent/workspace
+
+# Entrypoint is just claude — no flags baked in.
+# clodbox passes --dangerously-skip-permissions at runtime.
+ENTRYPOINT ["claude"]

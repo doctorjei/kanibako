@@ -1,25 +1,8 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Wrap tools for easy use.
-_CP_=$(which cp)
-_CUT_=$(which cut)
-_DIRNAME_=$(which dirname)
-_ECHO_=$(which echo)
-_JQ_=$(which jq)
-_MKDIR_=$(which mkdir)
-_REALPATH_=$(which realpath)
-_PRINTF_=$(which printf)
-_PWD_=$(which pwd)
-_SHA_=$(which sha256sum)
-_TOUCH_=$(which touch)
-
-# Absolute path; parameters: current value, default value
-_get_abspath_() { $_ECHO_ "${1:+$($_REALPATH_ -m $1)}${1:-$($_REALPATH_ -m $2)}"; }
-
-# Default configuration file (can be overriden)
-: ${HOME:="~"}
-XDG_CONFIG_HOME=$(_get_abspath_ "$XDG_CONFIG_HOME" "$HOME/.config")
-CLODBOX_CONFIG_FILE="$XDG_CONFIG_HOME/clodbox/clodbox.rc"
+# Load shared library from the same directory as this script.
+. "$(dirname "$(realpath "$0")")/clodbox-lib"
 
 # Primary / main function; starts clodbox container.
 _clodbox_start_() {
@@ -27,8 +10,55 @@ _clodbox_start_() {
   _clodbox_load_std_paths_
   _clodbox_fetch_project_paths_
 
-  ENTRYPT=${1:+"--entrypoint \"$1\""}
-  OAUTH_TOKEN=$($_JQ_ -r '.claudeAiOauth.accessToken' $PROJECT_DOT_PATH/.credentials.json)
+  ENTRYPOINT_ARGS=()
+  if [ -n "${CLODBOX_ENTRYPOINT:-}" ]; then
+    ENTRYPOINT_ARGS=(--entrypoint "$CLODBOX_ENTRYPOINT")
+  fi
+
+  # Refresh auth credentials from central store into project copy.
+  CENTRAL_CREDS="$CLODBOX_CREDENTIALS_PATH/$CLODBOX_DOT_PATH/.credentials.json"
+  if [ -f "$CENTRAL_CREDS" ]; then
+    jq --argjson auth "$(jq '.claudeAiOauth' "$CENTRAL_CREDS")" \
+      '.claudeAiOauth = $auth' "$PROJECT_DOT_PATH/.credentials.json" \
+      > "$PROJECT_DOT_PATH/.credentials.json.tmp" \
+      && mv "$PROJECT_DOT_PATH/.credentials.json.tmp" "$PROJECT_DOT_PATH/.credentials.json"
+  fi
+
+  OAUTH_TOKEN=$(jq -r '.claudeAiOauth.accessToken' "$PROJECT_DOT_PATH/.credentials.json")
+
+  # Build CLI args to pass to the container entrypoint.
+  CLI_ARGS=()
+
+  # Determine if we're in claude mode (entrypoint is claude, not overridden).
+  CLODBOX_CLAUDE_MODE=1
+  if [ -n "${CLODBOX_ENTRYPOINT:-}" ]; then
+    CLODBOX_CLAUDE_MODE=
+  fi
+
+  if [ -n "$CLODBOX_CLAUDE_MODE" ]; then
+    # Inject --dangerously-skip-permissions unless --safe was passed.
+    if [ -z "${CLODBOX_SAFE_MODE:-}" ]; then
+      CLI_ARGS+=(--dangerously-skip-permissions)
+    fi
+
+    if [ -n "${CLODBOX_RESUME_MODE:-}" ]; then
+      # Resume mode: inject --resume, skip --continue logic.
+      CLI_ARGS+=(--resume)
+    else
+      # Default to --continue for existing projects, unless suppressed.
+      SKIP_CONTINUE="${CLODBOX_NEW_SESSION:-}${CLODBOX_PROJECT_IS_NEW:-}"
+      for arg in "$@"; do
+        if [ "$arg" = "--resume" ] || [ "$arg" = "-r" ]; then
+          SKIP_CONTINUE=1
+        fi
+      done
+      if [ -z "$SKIP_CONTINUE" ]; then
+        CLI_ARGS+=(--continue)
+      fi
+    fi
+  fi
+
+  CLI_ARGS+=("$@")
 
   # Execute podman or docker.
   docker run -it --rm --userns=keep-id \
@@ -36,16 +66,18 @@ _clodbox_start_() {
     -w /home/agent/workspace \
     -v "$PROJECT_DOT_PATH":/home/agent/.claude:Z,U \
     -v "$PROJECT_CFG_FILE":/home/agent/.claude.json:Z,U \
-    -e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN" "$ENTRYPT" \
-    "$CLODBOX_CONTAINER_IMAGE"
+    -e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN" \
+    "${ENTRYPOINT_ARGS[@]}" \
+    "$CLODBOX_CONTAINER_IMAGE" \
+    "${CLI_ARGS[@]}"
 }
 
 # Process standardized directories.
 _clodbox_load_std_paths_() {
   # Fetch / normalize XDG variables (or get their defaults)
-  XDG_DATA_HOME=$(_get_abspath_ "$XDG_DATA_HOME" "$HOME/.local/share")
-  XDG_STATE_HOME=$(_get_abspath_ "$XDG_STATE_HOME" "$HOME/.local/state")
-  XDG_CACHE_HOME=$(_get_abspath_ "$XDG_CACHE_HOME" "$HOME/.cache")
+  XDG_DATA_HOME=$(_get_abspath_ "${XDG_DATA_HOME:-}" "$HOME/.local/share")
+  XDG_STATE_HOME=$(_get_abspath_ "${XDG_STATE_HOME:-}" "$HOME/.local/state")
+  XDG_CACHE_HOME=$(_get_abspath_ "${XDG_CACHE_HOME:-}" "$HOME/.cache")
 
   # The config has all over variables, so just this relative path is at the top;
   # it holds important values - all of the relative paths, as well as others
@@ -53,69 +85,69 @@ _clodbox_load_std_paths_() {
   # the standard relative path loaded from the config file.
 
   if [ ! -f "$CLODBOX_CONFIG_FILE" ]; then
-    $_ECHO_ "Error: [$CLODBOX_CONFIG_FILE] is missing. Reinstall to fix."
+    echo "Error: [$CLODBOX_CONFIG_FILE] is missing. Reinstall to fix." >&2
     exit 1
   else
-    . $CLODBOX_CONFIG_FILE
+    . "$CLODBOX_CONFIG_FILE"
   fi
 
   CLODBOX_DATA_PATH="$XDG_DATA_HOME/$CLODBOX_RELATIVE_STD_PATH" # projects, creds.
-  CLODBOX_STATE_PATH="$XDG_STATE_HOME/$CLODBOX_REALTIVE_STD_PATH" # Maybe for later
-  CLODBOX_CACHE_PATH="$XDG_CACHE_HOME/$CLODBOX_REALTIVE_STD_PATH" # Maybe for later
+  CLODBOX_STATE_PATH="$XDG_STATE_HOME/$CLODBOX_RELATIVE_STD_PATH" # Maybe for later
+  CLODBOX_CACHE_PATH="$XDG_CACHE_HOME/$CLODBOX_RELATIVE_STD_PATH" # Maybe for later
   CLODBOX_CREDENTIALS_PATH="$CLODBOX_DATA_PATH/$CLODBOX_INIT_CREDENTIALS_PATH"
 
   # Make sure all of the directories exist.
-  $_MKDIR_ -p "$($_DIRNAME_ $CLODBOX_CONFIG_FILE)"
-  $_MKDIR_ -p "$CLODBOX_DATA_PATH"
-  $_MKDIR_ -p "$CLODBOX_STATE_PATH"
-  $_MKDIR_ -p "$CLODBOX_CACHE_PATH"
+  mkdir -p "$(dirname "$CLODBOX_CONFIG_FILE")"
+  mkdir -p "$CLODBOX_DATA_PATH"
+  mkdir -p "$CLODBOX_STATE_PATH"
+  mkdir -p "$CLODBOX_CACHE_PATH"
 }
 
 # Fetch / construct and validate project paths.
 _clodbox_fetch_project_paths_() {
   # Fetch / construct various project-related paths
-  PROJECT_PATH="$($_REALPATH_ -m $($_PWD_))"
-  PROJECT_HASH=$($_ECHO_ -n "$PROJECT_PATH" | $_SHA_ | $_CUT_ -d " " -f1)
+  PROJECT_PATH="$(realpath -m $(pwd))"
+  PROJECT_HASH=$(echo -n "$PROJECT_PATH" | sha256sum | cut -d " " -f1)
 
   PROJECT_SETTINGS_PATH="$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH/$PROJECT_HASH"
   PROJECT_DOT_PATH="$PROJECT_SETTINGS_PATH/$CLODBOX_DOT_PATH"
   PROJECT_CFG_FILE="$PROJECT_SETTINGS_PATH/$CLODBOX_CFG_FILE"
 
- # If the project path doesn't exist... something is wrong.
+  # If the project path doesn't exist... something is wrong.
   if [ ! -d "$PROJECT_PATH" ]; then
-    $_ECHO_ "Error: Project path '$PROJECT_PATH' does not exist." >&2
-    $_ECHO_ "(How did you get here?!)" >&2
+    echo "Error: Project path '$PROJECT_PATH' does not exist." >&2
+    echo "(How did you get here?!)" >&2
     exit 1
   fi
 
   # If there's no data on the project, attempt to initialize it freshly.
   if [ ! -d "$PROJECT_SETTINGS_PATH" ]; then
-    $_PRINTF_ "[One Time Setup] Initializing clodbox in $PROJECT_PATH... "
+    printf '[One Time Setup] Initializing clodbox in %s... ' "$PROJECT_PATH"
     _clodbox_init_
-    $_PRINTF_ "done.\n"
+    printf "done.\n"
+    CLODBOX_PROJECT_IS_NEW=1
   fi
 
   # If dot-path doesn't exist at this point, its a problem; attempt recovery.
   if [ ! -d "$PROJECT_DOT_PATH" ]; then
-    $_ECHO_ "Warning: No settings directory; this is probably a problem." >&2
-    $_ECHO_ "--> Making project settings directory for attempted start..."
-    $_MKDIR_ -p "$PROJECT_DOT_PATH"
-      if [ ! -d "$PROJECT_DOT_PATH" ]; then
-        $_ECHO_ "Error: *Still* no project settings directory. Exiting." >&2
-        exit 1
-      fi
+    echo "Warning: No settings directory; this is probably a problem." >&2
+    echo "--> Making project settings directory for attempted start..."
+    mkdir -p "$PROJECT_DOT_PATH"
+    if [ ! -d "$PROJECT_DOT_PATH" ]; then
+      echo "Error: *Still* no project settings directory. Exiting." >&2
+      exit 1
+    fi
   fi
 
   # If the config file doesn't exist, that's also a problem - attempt recovery.
   if [ ! -f "$PROJECT_CFG_FILE" ]; then
-    $_ECHO_ "Warning: No project config file; this is probably a problem." >&2
-    $_ECHO_ "--> Creating $PROJECT_CFG_FILE..."
-    $_TOUCH_ "$PROJECT_CFG_FILE" >&2
-
-      if [ ! -f "$PROJECT_CFG_FILE" ]; then
-        $_ECHO_ "Error: *Still* no project config file. Exiting." >&2
-        exit 1
-      fi
+    echo "Warning: No project config file; this is probably a problem." >&2
+    echo "--> Creating $PROJECT_CFG_FILE..."
+    touch "$PROJECT_CFG_FILE"
+    if [ ! -f "$PROJECT_CFG_FILE" ]; then
+      echo "Error: *Still* no project config file. Exiting." >&2
+      exit 1
+    fi
   fi
 }
 
@@ -123,18 +155,95 @@ _clodbox_fetch_project_paths_() {
 _clodbox_init_() {
   # Check if path exists. (It should always exist.)
   if [ ! -d "$PROJECT_PATH" ]; then
-    $_ECHO_ "Function Error: clodbox project directory doesn't exist." 2>&1
-    $_ECHO_ "(How did you get here?!)" >&2
+    echo "Function Error: clodbox project directory doesn't exist." >&2
+    echo "(How did you get here?!)" >&2
     exit 1
   fi
 
   # Fetch project-specific path via hash. Generate missing directories.
-  $_MKDIR_ -p "$PROJECT_PATH"
-  $_MKDIR_ -p "$PROJECT_SETTINGS_PATH"
+  mkdir -p "$PROJECT_PATH"
+  mkdir -p "$PROJECT_SETTINGS_PATH"
 
   # Copy credential files into the project configuration and exit.
-  $_CP_ -rp "$CLODBOX_CREDENTIALS_PATH/." "$PROJECT_SETTINGS_PATH"
+  cp -rp "$CLODBOX_CREDENTIALS_PATH/." "$PROJECT_SETTINGS_PATH"
 }
 
-# Kickoff the script.
-_clodbox_start_
+# ---- Option Processing ----
+_clodbox_usage_() {
+  echo "Usage: clodbox [OPTIONS] [COMMAND] [-- AGENT_ARGS...]"
+  echo ""
+  echo "Commands:"
+  echo "  start    Start or continue a Claude session (default)"
+  echo "  shell    Open a bash shell in the container"
+  echo "  resume   Resume with conversation picker"
+  echo ""
+  echo "Options:"
+  echo "  -E, --entrypoint CMD   Use CMD as the container entrypoint"
+  echo "  -N, --new              Start a new conversation (skip default --continue)"
+  echo "  -S, --safe             Run without --dangerously-skip-permissions"
+  echo "  -h, --help             Show this help message"
+  echo ""
+  echo "By default, existing projects resume the last conversation. Use -N to"
+  echo "start fresh, or pass explicit agent args after -- to override."
+}
+
+CLODBOX_SUBCOMMAND=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -E|--entrypoint)
+      if [ -z "${2:-}" ]; then
+        echo "Error: $1 requires an argument." >&2
+        exit 1
+      fi
+      CLODBOX_ENTRYPOINT="$2"
+      shift 2
+      ;;
+    -N|--new)
+      CLODBOX_NEW_SESSION=1
+      shift
+      ;;
+    -S|--safe)
+      CLODBOX_SAFE_MODE=1
+      shift
+      ;;
+    -h|--help)
+      _clodbox_usage_
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Error: Unknown option: $1" >&2
+      _clodbox_usage_ >&2
+      exit 1
+      ;;
+    start|shell|resume)
+      CLODBOX_SUBCOMMAND="$1"
+      shift
+      break
+      ;;
+    *)
+      echo "Error: Unknown command: $1" >&2
+      _clodbox_usage_ >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Default subcommand is start.
+CLODBOX_SUBCOMMAND="${CLODBOX_SUBCOMMAND:-start}"
+
+# Apply subcommand effects.
+case "$CLODBOX_SUBCOMMAND" in
+  shell)
+    CLODBOX_ENTRYPOINT="/bin/bash"
+    ;;
+  resume)
+    CLODBOX_RESUME_MODE=1
+    ;;
+esac
+
+# Kickoff the script; forward any remaining args to the container.
+_clodbox_start_ "$@"

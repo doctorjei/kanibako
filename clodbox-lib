@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Shared library for clodbox scripts. Sourced, not executed directly.
+
+# Absolute path; parameters: current value, default value
+_get_abspath_() { echo "${1:+$(realpath -m $1)}${1:-$(realpath -m $2)}"; }
+
+# Resolve HOME and XDG config path.
+: ${HOME:="~"}
+XDG_CONFIG_HOME=$(_get_abspath_ "${XDG_CONFIG_HOME:-}" "$HOME/.config")
+CLODBOX_CONFIG_FILE="$XDG_CONFIG_HOME/clodbox/clodbox.rc"
