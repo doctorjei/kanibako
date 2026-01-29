@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+### Install and set up clodbox.
+
+# Wrap tools for easy use.
+_CP_=$(which cp)
+_ECHO_=$(which echo)
+_JQ_=$(which jq)
+_MKDIR_=$(which mkdir)
+_PRINTF_=$(which printf)
+_REALPATH_=$(which realpath)
+_CHMOD_=$(which chmod)
+
+# Absolute path; parameters: current value, default value
+_get_abspath_() { $_ECHO_ "${1:+$($_REALPATH_ -m $1)}${1:-$($_REALPATH_ -m $2)}"; }
+
+# Identify the config file so that we can write a default copy out.
+: ${HOME:="~"}
+XDG_CONFIG_HOME=$(_get_abspath_ "$XDG_CONFIG_HOME" "$HOME/.config")
+CLODBOX_CONFIG_FILE="$XDG_CONFIG_HOME/clodbox/clodbox.rc"
+$_MKDIR_ -p "$XDG_CONFIG_HOME/clodbox"
+
+_config_defaults='#!/usr/bin/env bash
+export CLODBOX_RELATIVE_STD_PATH="clodbox"
+export CLODBOX_INIT_CREDENTIALS_PATH="credentials"
+export CLODBOX_PROJECTS_PATH="projects"
+
+export CLODBOX_DOT_PATH="dotclod"
+export CLODBOX_CFG_FILE="dotclod.json"
+export CLODBOX_CONTAINER_IMAGE="docker.io/docker/sandbox-templates:claude-code"'
+
+# Write out a default config file and load it into this script as well.
+$_PRINTF_ "Writing to general configuration file (clodbox.rc)... "
+$_PRINTF_ "$_config_defaults\n" > "$CLODBOX_CONFIG_FILE"
+eval "$_config_defaults"
+$_PRINTF_ "done!\n"
+
+# Process credential locations
+CLODBOX_DATA=$(_get_abspath_ "$XDG_DATA_HOME" "$HOME/.local/share")/"$CLODBOX_RELATIVE_STD_PATH"
+CLODBOX_CREDENTIALS_PATH="$CLODBOX_DATA/$CLODBOX_INIT_CREDENTIALS_PATH"
+CLODBOX_DOT_TEMPLATE_PATH="$CLODBOX_CREDENTIALS_PATH/$CLODBOX_DOT_PATH"
+CLODBOX_CFG_TEMPLATE_FILE="$CLODBOX_CREDENTIALS_PATH/$CLODBOX_CFG_FILE"
+SETTINGS_FILTER='{oauthAccount, hasCompletedOnboarding: true, installMethod}'
+
+# Clone credentials into clodbox store
+$_PRINTF_ "Copying authentication credentials to clodbox store... "
+$_MKDIR_ -p "$CLODBOX_DOT_TEMPLATE_PATH"
+$_JQ_ "$SETTINGS_FILTER" "$HOME/.claude.json" > "$CLODBOX_CFG_TEMPLATE_FILE"
+$_CP_ "$HOME/.claude/.credentials.json" "$CLODBOX_DOT_TEMPLATE_PATH"
+$_PRINTF_ "done!\n"
+
+# Copy executables into ~/.local/bin.
+$_PRINTF_ "Installing executables (clodbox & clodbox-remove)..."
+$_CP_ "./clodbox" "$HOME/.local/bin"
+$_CHMOD_ "+x" "$HOME/.local/bin/clodbox"
+$_CP_ "./clodbox-remove" "$HOME/.local/bin"
+$_CHMOD_ "+x" "$HOME/.local/bin/clodbox-remove"
+$_PRINTF_ "done!\n"
+

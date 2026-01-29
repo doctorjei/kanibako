@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+### Remove clodbox and its supporting files.
+
+# Wrap tools for easy use.
+_ECHO_=$(which echo)
+_PRINTF_=$(which printf)
+_REALPATH_=$(which realpath)
+_RM_=$(which rm)
+
+# Absolute path; parameters: current value, default value
+_get_abspath_() { $_ECHO_ "${1:+$($_REALPATH_ -m $1)}${1:-$($_REALPATH_ -m $2)}"; }
+
+# Identify the config file so that we can load and then remove it.
+$_PRINTF_ "Deleting configuration file (clodbox.rc)... "
+: ${HOME:="~"}
+XDG_CONFIG_HOME=$(_get_abspath_ "$XDG_CONFIG_HOME" "$HOME/.config")
+CLODBOX_CONFIG_FILE="$XDG_CONFIG_HOME/clodbox/clodbox.rc"
+if [ -e "$CLODBOX_CONFIG_FILE" ]; then
+    . "$CLODBOX_CONFIG_FILE"
+else
+    CLODBOX_RELATIVE_STD_PATH="clodbox"
+fi
+$_PRINTF_ "done.\n"
+
+# Process credential locations
+$_PRINTF_ "Removing clodbox project and authentication data... "
+CLODBOX_DATA=$(_get_abspath_ "$XDG_DATA_HOME" "$HOME/.local/share")/"$CLODBOX_RELATIVE_STD_PATH"
+$_RM_ -rf "$CLOD_DATA"
+$_PRINTF_ "done.\n"
+
+# Remove script files
+$_PRINTF_ "Removing executables..."
+$_RM_ -rf "$HOME/.local/bin/clodbox"
+$_RM_ -rf "$HOME/.local/bin/clodbox-remove"
+$_PRINTF_ "done.\n"
