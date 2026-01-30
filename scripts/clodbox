@@ -228,38 +228,6 @@ _clodbox_init_() {
   cp -rp "$CLODBOX_CREDENTIALS_PATH/." "$PROJECT_SETTINGS_PATH"
 }
 
-# Archive project session data and git metadata.
-
-# Get or set per-project configuration.
-_clodbox_config_() {
-  local key="${1:-}"
-  if [ -z "$key" ]; then
-    echo "Usage: clodbox config <key> [value]" >&2
-    echo "Keys: image" >&2
-    exit 1
-  fi
-
-  case "$key" in
-    image)
-      if [ -z "${2:-}" ]; then
-        echo "$CLODBOX_CONTAINER_IMAGE"
-      else
-        local rc="$PROJECT_SETTINGS_PATH/project.rc"
-        if [ -f "$rc" ] && grep -q '^CLODBOX_CONTAINER_IMAGE=' "$rc"; then
-          sed -i "s|^CLODBOX_CONTAINER_IMAGE=.*|CLODBOX_CONTAINER_IMAGE=\"$2\"|" "$rc"
-        else
-          echo "CLODBOX_CONTAINER_IMAGE=\"$2\"" >> "$rc"
-        fi
-        echo "Set image to $2 for project $PROJECT_PATH"
-      fi
-      ;;
-    *)
-      echo "Error: Unknown config key: $key" >&2
-      exit 1
-      ;;
-  esac
-}
-
 # ---- Subcommand Help ----
 _clodbox_start_usage_() {
   echo "Usage: clodbox [start] [OPTIONS] [-- AGENT_ARGS...]"
