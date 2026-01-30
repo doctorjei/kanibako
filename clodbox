@@ -10,6 +10,11 @@ _clodbox_start_() {
   _clodbox_load_std_paths_
   _clodbox_fetch_project_paths_
 
+  # CLI -i/--image overrides any config-sourced image.
+  if [ -n "${CLODBOX_IMAGE_OVERRIDE:-}" ]; then
+    CLODBOX_CONTAINER_IMAGE="$CLODBOX_IMAGE_OVERRIDE"
+  fi
+
   ENTRYPOINT_ARGS=()
   if [ -n "${CLODBOX_ENTRYPOINT:-}" ]; then
     ENTRYPOINT_ARGS=(--entrypoint "$CLODBOX_ENTRYPOINT")
@@ -106,7 +111,7 @@ _clodbox_load_std_paths_() {
 # Fetch / construct and validate project paths.
 _clodbox_fetch_project_paths_() {
   # Fetch / construct various project-related paths
-  PROJECT_PATH="$(realpath -m $(pwd))"
+  PROJECT_PATH="$(realpath -m "${CLODBOX_PROJECT_DIR:-$(pwd)}")"
   PROJECT_HASH=$(echo -n "$PROJECT_PATH" | sha256sum | cut -d " " -f1)
 
   PROJECT_SETTINGS_PATH="$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH/$PROJECT_HASH"
@@ -139,6 +144,12 @@ _clodbox_fetch_project_paths_() {
     fi
   fi
 
+  # Source per-project config if it exists (overrides global defaults).
+  PROJECT_RC="$PROJECT_SETTINGS_PATH/project.rc"
+  if [ -f "$PROJECT_RC" ]; then
+    . "$PROJECT_RC"
+  fi
+
   # If the config file doesn't exist, that's also a problem - attempt recovery.
   if [ ! -f "$PROJECT_CFG_FILE" ]; then
     echo "Warning: No project config file; this is probably a problem." >&2
@@ -168,6 +179,36 @@ _clodbox_init_() {
   cp -rp "$CLODBOX_CREDENTIALS_PATH/." "$PROJECT_SETTINGS_PATH"
 }
 
+# Get or set per-project configuration.
+_clodbox_config_() {
+  local key="${1:-}"
+  if [ -z "$key" ]; then
+    echo "Usage: clodbox config <key> [value]" >&2
+    echo "Keys: image" >&2
+    exit 1
+  fi
+
+  case "$key" in
+    image)
+      if [ -z "${2:-}" ]; then
+        echo "$CLODBOX_CONTAINER_IMAGE"
+      else
+        local rc="$PROJECT_SETTINGS_PATH/project.rc"
+        if [ -f "$rc" ] && grep -q '^CLODBOX_CONTAINER_IMAGE=' "$rc"; then
+          sed -i "s|^CLODBOX_CONTAINER_IMAGE=.*|CLODBOX_CONTAINER_IMAGE=\"$2\"|" "$rc"
+        else
+          echo "CLODBOX_CONTAINER_IMAGE=\"$2\"" >> "$rc"
+        fi
+        echo "Set image to $2 for project $PROJECT_PATH"
+      fi
+      ;;
+    *)
+      echo "Error: Unknown config key: $key" >&2
+      exit 1
+      ;;
+  esac
+}
+
 # ---- Option Processing ----
 _clodbox_usage_() {
   echo "Usage: clodbox [OPTIONS] [COMMAND] [-- AGENT_ARGS...]"
@@ -176,9 +217,12 @@ _clodbox_usage_() {
   echo "  start    Start or continue a Claude session (default)"
   echo "  shell    Open a bash shell in the container"
   echo "  resume   Resume with conversation picker"
+  echo "  config   Get or set per-project configuration"
   echo ""
   echo "Options:"
-  echo "  -E, --entrypoint CMD   Use CMD as the container entrypoint"
+  echo "  -c, --command CMD      Use CMD as the container entrypoint"
+  echo "  -i, --image IMAGE      Use IMAGE as the container image for this run"
+  echo "  -p, --project DIR      Use DIR as the project directory (default: cwd)"
   echo "  -N, --new              Start a new conversation (skip default --continue)"
   echo "  -S, --safe             Run without --dangerously-skip-permissions"
   echo "  -h, --help             Show this help message"
@@ -190,12 +234,28 @@ _clodbox_usage_() {
 CLODBOX_SUBCOMMAND=
 while [ $# -gt 0 ]; do
   case "$1" in
-    -E|--entrypoint)
+    -c|--command|-E|--entrypoint)
       if [ -z "${2:-}" ]; then
         echo "Error: $1 requires an argument." >&2
         exit 1
       fi
       CLODBOX_ENTRYPOINT="$2"
+      shift 2
+      ;;
+    -i|--image)
+      if [ -z "${2:-}" ]; then
+        echo "Error: $1 requires an argument." >&2
+        exit 1
+      fi
+      CLODBOX_IMAGE_OVERRIDE="$2"
+      shift 2
+      ;;
+    -p|--project)
+      if [ -z "${2:-}" ]; then
+        echo "Error: $1 requires an argument." >&2
+        exit 1
+      fi
+      CLODBOX_PROJECT_DIR="$2"
       shift 2
       ;;
     -N|--new)
@@ -219,7 +279,7 @@ while [ $# -gt 0 ]; do
       _clodbox_usage_ >&2
       exit 1
       ;;
-    start|shell|resume)
+    start|shell|resume|config)
       CLODBOX_SUBCOMMAND="$1"
       shift
       break
@@ -237,6 +297,12 @@ CLODBOX_SUBCOMMAND="${CLODBOX_SUBCOMMAND:-start}"
 
 # Apply subcommand effects.
 case "$CLODBOX_SUBCOMMAND" in
+  config)
+    _clodbox_load_std_paths_
+    _clodbox_fetch_project_paths_
+    _clodbox_config_ "$@"
+    exit 0
+    ;;
   shell)
     CLODBOX_ENTRYPOINT="/bin/bash"
     ;;

@@ -40,7 +40,7 @@ printf "done!\n"
 printf "Installing Containerfiles... "
 mkdir -p "$CLODBOX_DATA/containers"
 cp ./containers/Containerfile.base "$CLODBOX_DATA/containers/"
-cp ./containers/Containerfile.kitchen-sink "$CLODBOX_DATA/containers/"
+cp ./containers/Containerfile.behemoth "$CLODBOX_DATA/containers/"
 printf "done!\n"
 
 # Build base container image if it doesn't already exist.
