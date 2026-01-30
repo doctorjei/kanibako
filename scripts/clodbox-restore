@@ -44,7 +44,10 @@ _clodbox_fetch_project_paths_
 temp_dir=$(mktemp -d)
 trap "rm -rf $temp_dir" EXIT
 
-tar -xJf "$archive_file" -C "$temp_dir" 2>/dev/null
+if ! tar -xJf "$archive_file" -C "$temp_dir"; then
+  echo "Error: Failed to extract archive: $archive_file" >&2
+  exit 1
+fi
 archive_hash=$(ls "$temp_dir" | head -n1)
 info_file="$temp_dir/$archive_hash/clodbox-archive-info.txt"
 

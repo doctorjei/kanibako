@@ -64,6 +64,7 @@ fi
 
 # Copy executables and libraries into ~/.local/bin.
 printf "Installing executables... "
+mkdir -p "$HOME/.local/bin"
 cp "$SCRIPT_DIR/clodbox-lib" "$HOME/.local/bin"
 cp "$SCRIPT_DIR/clodbox-lib-common" "$HOME/.local/bin"
 for script in clodbox clodbox-config clodbox-image clodbox-archive clodbox-clean clodbox-restore clodbox-remove clodbox-refresh-credentials; do
