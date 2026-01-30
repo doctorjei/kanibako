@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Clean project session data.
+
+# Load shared library
+. "$(dirname "$(realpath "$0")")/clodbox-lib-common"
+
+project_path="${1:-}"
+
+if [ -z "$project_path" ]; then
+  echo "Error: Project path required." >&2
+  echo "Usage: clodbox clean <project-path>" >&2
+  exit 1
+fi
+
+# Override project dir and load paths
+CLODBOX_PROJECT_DIR="$project_path"
+_clodbox_load_std_paths_
+_clodbox_fetch_project_paths_
+
+# Check if session data exists
+if [ ! -d "$PROJECT_SETTINGS_PATH" ]; then
+  echo "No session data found for project $PROJECT_PATH"
+  exit 0
+fi
+
+# Prompt for confirmation unless forced
+if [ -z "${CLODBOX_FORCE:-}" ]; then
+  hash8="${PROJECT_HASH:0:8}"
+  echo "Project: $PROJECT_PATH"
+  echo "Hash: $hash8"
+  echo ""
+  printf "Delete all session data for this project? This cannot be undone.\nType 'yes' to confirm: "
+  read -r response
+  if [ "$response" != "yes" ]; then
+    echo "Aborted."
+    exit 0
+  fi
+fi
+
+# Remove session data
+printf "Removing session data... "
+rm -rf "$PROJECT_SETTINGS_PATH"
+printf "done.\n"
+echo "Session data removed for $PROJECT_PATH"

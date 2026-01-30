@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Restore project session data from archive.
+
+# Load shared library
+. "$(dirname "$(realpath "$0")")/clodbox-lib-common"
+
+project_path="${1:-}"
+archive_file="${2:-}"
+
+if [ -z "$project_path" ] || [ -z "$archive_file" ]; then
+  echo "Error: Project path and archive file required." >&2
+  echo "Usage: clodbox restore <project-path> <archive-file>" >&2
+  exit 1
+fi
+
+if [ ! -f "$archive_file" ]; then
+  echo "Error: Archive file not found: $archive_file" >&2
+  exit 1
+fi
+
+# Override project dir and load paths
+CLODBOX_PROJECT_DIR="$project_path"
+_clodbox_load_std_paths_
+_clodbox_fetch_project_paths_
+
+# Extract metadata from archive
+temp_dir=$(mktemp -d)
+trap "rm -rf $temp_dir" EXIT
+
+tar -xJf "$archive_file" -C "$temp_dir" 2>/dev/null
+archive_hash=$(ls "$temp_dir" | head -n1)
+info_file="$temp_dir/$archive_hash/clodbox-archive-info.txt"
+
+if [ ! -f "$info_file" ]; then
+  echo "Error: Invalid archive format (missing clodbox-archive-info.txt)" >&2
+  exit 1
+fi
+
+archive_path=$(grep "^Project path:" "$info_file" | cut -d' ' -f3-)
+archive_basename=$(basename "$archive_path")
+current_basename=$(basename "$PROJECT_PATH")
+
+# Validate hash match
+hash_match=0
+if [ "$archive_hash" = "$PROJECT_HASH" ]; then
+  hash_match=1
+elif [ "$archive_basename" = "$current_basename" ]; then
+  hash_match=1  # Same basename, different parent path
+fi
+
+if [ $hash_match -eq 0 ] && [ -z "${CLODBOX_FORCE:-}" ]; then
+  echo "Warning: Project path mismatch"
+  echo ""
+  echo "Archive from: $archive_path"
+  echo "Restoring to: $PROJECT_PATH"
+  echo ""
+  printf "Continue anyway? Type 'yes' to confirm: "
+  read -r response
+  if [ "$response" != "yes" ]; then
+    echo "Aborted."
+    exit 0
+  fi
+fi
+
+# Validate git state if archive has git metadata
+git_in_archive=$(grep "^Git repository:" "$info_file" | cut -d' ' -f3)
+if [ "$git_in_archive" = "yes" ]; then
+  if [ ! -d "$PROJECT_PATH/.git" ]; then
+    if [ -z "${CLODBOX_FORCE:-}" ]; then
+      echo "Warning: Archive came from a git repository, but current workspace is not a git repo."
+      echo ""
+      grep "^Branch:\|^Commit:\|^Remotes:" "$info_file" | head -n3
+      echo ""
+      printf "Continue anyway? Type 'yes' to confirm: "
+      read -r response
+      if [ "$response" != "yes" ]; then
+        echo "Aborted."
+        exit 0
+      fi
+    fi
+  else
+    cd "$PROJECT_PATH"
+    archive_commit=$(grep "^Commit:" "$info_file" | awk '{print $2}')
+    current_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+    if [ "$archive_commit" != "$current_commit" ] && [ -z "${CLODBOX_FORCE:-}" ]; then
+      echo "Warning: Git state mismatch"
+      echo ""
+      echo "Archive from:"
+      grep "^Branch:\|^Commit:" "$info_file" | sed 's/^/  /'
+      echo ""
+      echo "Current workspace:"
+      echo "  Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')"
+      echo "  Commit: $current_commit"
+      echo ""
+      printf "Continue anyway? Type 'yes' to confirm: "
+      read -r response
+      if [ "$response" != "yes" ]; then
+        echo "Aborted."
+        exit 0
+      fi
+    fi
+  fi
+fi
+
+# Restore session data
+printf "Restoring session data... "
+mkdir -p "$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH"
+rm -rf "$PROJECT_SETTINGS_PATH"
+cp -rp "$temp_dir/$archive_hash" "$PROJECT_SETTINGS_PATH"
+# Remove the info file from the restored data
+rm -f "$PROJECT_SETTINGS_PATH/clodbox-archive-info.txt"
+printf "done.\n"
+echo "Session data restored to $PROJECT_PATH"
