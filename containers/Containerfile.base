@@ -23,7 +23,12 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # Create agent user with passwordless sudo
-RUN groupadd -g 1000 agent \
+# Remove any existing user/group at UID/GID 1000 (e.g. ubuntu) first
+RUN existing_user=$(getent passwd 1000 | cut -d: -f1); \
+    if [ -n "$existing_user" ]; then userdel -r "$existing_user"; fi \
+    && existing_group=$(getent group 1000 | cut -d: -f1); \
+    if [ -n "$existing_group" ]; then groupdel "$existing_group"; fi \
+    && groupadd -g 1000 agent \
     && useradd -m -u 1000 -g 1000 -s /bin/bash agent \
     && echo "agent ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent \
     && chmod 0440 /etc/sudoers.d/agent
