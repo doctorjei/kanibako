@@ -38,8 +38,10 @@ printf "done!\n"
 
 # Copy Containerfiles into clodbox data directory.
 printf "Installing Containerfiles... "
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 mkdir -p "$CLODBOX_DATA/containers"
-cp ./containers/Containerfile.* "$CLODBOX_DATA/containers/"
+cp "$REPO_DIR/containers/Containerfile."* "$CLODBOX_DATA/containers/"
 printf "done!\n"
 
 # Fetch container image: try pulling from registry, fall back to local build.
@@ -62,10 +64,10 @@ fi
 
 # Copy executables and libraries into ~/.local/bin.
 printf "Installing executables... "
-cp "./clodbox-lib" "$HOME/.local/bin"
-cp "./clodbox-lib-common" "$HOME/.local/bin"
+cp "$SCRIPT_DIR/clodbox-lib" "$HOME/.local/bin"
+cp "$SCRIPT_DIR/clodbox-lib-common" "$HOME/.local/bin"
 for script in clodbox clodbox-config clodbox-image clodbox-archive clodbox-clean clodbox-restore clodbox-remove clodbox-refresh-credentials; do
-  cp "./$script" "$HOME/.local/bin"
+  cp "$SCRIPT_DIR/$script" "$HOME/.local/bin"
   chmod "+x" "$HOME/.local/bin/$script"
 done
 printf "done!\n"
