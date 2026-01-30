@@ -38,8 +38,68 @@ jobs:
           file: containers/Containerfile.base
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=base
+          cache-to: type=gha,mode=max,scope=base
+
+      - name: Build and push systems image
+        uses: docker/build-push-action@v6
+        with:
+          context: containers/
+          file: containers/Containerfile.systems
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-systems:latest
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+          cache-from: type=gha,scope=systems
+          cache-to: type=gha,mode=max,scope=systems
+
+      - name: Build and push jvm image
+        uses: docker/build-push-action@v6
+        with:
+          context: containers/
+          file: containers/Containerfile.jvm
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-jvm:latest
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+          cache-from: type=gha,scope=jvm
+          cache-to: type=gha,mode=max,scope=jvm
+
+      - name: Build and push android image
+        uses: docker/build-push-action@v6
+        with:
+          context: containers/
+          file: containers/Containerfile.android
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-android:latest
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-jvm:latest
+          cache-from: type=gha,scope=android
+          cache-to: type=gha,mode=max,scope=android
+
+      - name: Build and push ndk image
+        uses: docker/build-push-action@v6
+        with:
+          context: containers/
+          file: containers/Containerfile.ndk
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-ndk:latest
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-android:latest
+          cache-from: type=gha,scope=ndk
+          cache-to: type=gha,mode=max,scope=ndk
+
+      - name: Build and push dotnet image
+        uses: docker/build-push-action@v6
+        with:
+          context: containers/
+          file: containers/Containerfile.dotnet
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-dotnet:latest
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+          cache-from: type=gha,scope=dotnet
+          cache-to: type=gha,mode=max,scope=dotnet
 
       - name: Build and push behemoth image
         uses: docker/build-push-action@v6
@@ -50,5 +110,5 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-behemoth:latest
           build-args: |
             BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=behemoth
+          cache-to: type=gha,mode=max,scope=behemoth
