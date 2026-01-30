@@ -298,7 +298,21 @@ base (Python, nano, archives, git, gh, ssh)
 - **cloud** variant: base + Go (cloud-native/backend work)
 - **web** variant: base + Node.js/Deno (frontend tooling, JS ecosystem)
 
-### 6. Architecture note
+### 6. Auto-pull with local build fallback
+
+**Main `clodbox` script enhancement:**
+- Before starting a container, checks if the configured image exists locally
+- If not found, attempts to pull from registry (ghcr.io)
+- If pull fails, attempts local build using installed Containerfiles
+- Automatically detects which Containerfile to use based on image name pattern
+
+**Installer enhancement:**
+- Now copies all Containerfiles to `$CLODBOX_DATA/containers/` (not just base/behemoth)
+- Enables local build fallback for any variant image
+
+This ensures users can switch between image variants (base, systems, jvm, android, ndk, dotnet, behemoth) and clodbox will automatically fetch or build as needed.
+
+### 7. Architecture note
 
 **This is likely the last major feature to implement in shell scripts.** Future
 development should consider rewriting in Python for better maintainability,

@@ -15,6 +15,58 @@ _clodbox_start_() {
     CLODBOX_CONTAINER_IMAGE="$CLODBOX_IMAGE_OVERRIDE"
   fi
 
+  # Ensure container image is available (pull if needed, build as fallback)
+  docker="${CLODBOX_DOCKER_CMD:-$(command -v podman 2>/dev/null || command -v docker 2>/dev/null)}"
+  if [ -n "$docker" ]; then
+    if ! "$docker" image inspect "$CLODBOX_CONTAINER_IMAGE" >/dev/null 2>&1; then
+      printf "Container image not found locally. Pulling %s...\n" "$CLODBOX_CONTAINER_IMAGE" >&2
+      if "$docker" pull "$CLODBOX_CONTAINER_IMAGE" 2>/dev/null; then
+        printf "Image pulled successfully.\n" >&2
+      else
+        printf "Pull failed. Attempting local build...\n" >&2
+        # Try to determine which Containerfile to use based on image name
+        local containerfile=""
+        case "$CLODBOX_CONTAINER_IMAGE" in
+          *clodbox-base*|*clodbox:latest)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.base"
+            ;;
+          *clodbox-systems*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.systems"
+            ;;
+          *clodbox-jvm*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.jvm"
+            ;;
+          *clodbox-android*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.android"
+            ;;
+          *clodbox-ndk*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.ndk"
+            ;;
+          *clodbox-dotnet*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.dotnet"
+            ;;
+          *clodbox-behemoth*)
+            containerfile="$CLODBOX_DATA_PATH/containers/Containerfile.behemoth"
+            ;;
+        esac
+
+        if [ -n "$containerfile" ] && [ -f "$containerfile" ]; then
+          "$docker" build -t "$CLODBOX_CONTAINER_IMAGE" \
+            -f "$containerfile" \
+            "$CLODBOX_DATA_PATH/containers/" || {
+            echo "Error: Failed to pull or build container image: $CLODBOX_CONTAINER_IMAGE" >&2
+            exit 1
+          }
+          printf "Image built successfully.\n" >&2
+        else
+          echo "Error: Container image not available and no local Containerfile found." >&2
+          echo "Image: $CLODBOX_CONTAINER_IMAGE" >&2
+          exit 1
+        fi
+      fi
+    fi
+  fi
+
   ENTRYPOINT_ARGS=()
   if [ -n "${CLODBOX_ENTRYPOINT:-}" ]; then
     ENTRYPOINT_ARGS=(--entrypoint "$CLODBOX_ENTRYPOINT")
