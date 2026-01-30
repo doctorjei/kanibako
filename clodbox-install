@@ -14,7 +14,7 @@ export CLODBOX_PROJECTS_PATH="projects"
 
 export CLODBOX_DOT_PATH="dotclod"
 export CLODBOX_CFG_FILE="dotclod.json"
-export CLODBOX_CONTAINER_IMAGE="localhost/clodbox:latest"'
+export CLODBOX_CONTAINER_IMAGE="ghcr.io/doctorjei/clodbox-base:latest"'
 
 # Write out a default config file and load it into this script as well.
 printf "Writing to general configuration file (clodbox.rc)... "
