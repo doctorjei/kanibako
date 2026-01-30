@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Extended shared library for clodbox scripts with common path functions.
+# Sourced by various clodbox-* scripts.
+
+# Source the base library
+. "$(dirname "$(realpath "${BASH_SOURCE[0]}")")/clodbox-lib"
+
+# Load standard paths (XDG directories and clodbox config)
+_clodbox_load_std_paths_() {
+  XDG_DATA_HOME=$(_get_abspath_ "${XDG_DATA_HOME:-}" "$HOME/.local/share")
+  XDG_STATE_HOME=$(_get_abspath_ "${XDG_STATE_HOME:-}" "$HOME/.local/state")
+  XDG_CACHE_HOME=$(_get_abspath_ "${XDG_CACHE_HOME:-}" "$HOME/.cache")
+
+  if [ ! -f "$CLODBOX_CONFIG_FILE" ]; then
+    echo "Error: [$CLODBOX_CONFIG_FILE] is missing. Reinstall to fix." >&2
+    exit 1
+  else
+    . "$CLODBOX_CONFIG_FILE"
+  fi
+
+  CLODBOX_DATA_PATH="$XDG_DATA_HOME/$CLODBOX_RELATIVE_STD_PATH"
+  CLODBOX_STATE_PATH="$XDG_STATE_HOME/$CLODBOX_RELATIVE_STD_PATH"
+  CLODBOX_CACHE_PATH="$XDG_CACHE_HOME/$CLODBOX_RELATIVE_STD_PATH"
+  CLODBOX_CREDENTIALS_PATH="$CLODBOX_DATA_PATH/$CLODBOX_INIT_CREDENTIALS_PATH"
+
+  mkdir -p "$(dirname "$CLODBOX_CONFIG_FILE")"
+  mkdir -p "$CLODBOX_DATA_PATH"
+  mkdir -p "$CLODBOX_STATE_PATH"
+  mkdir -p "$CLODBOX_CACHE_PATH"
+}
+
+# Fetch / construct and validate project paths (for commands that need existing project)
+_clodbox_fetch_project_paths_() {
+  PROJECT_PATH="$(realpath -m "${CLODBOX_PROJECT_DIR:-$(pwd)}")"
+  PROJECT_HASH=$(echo -n "$PROJECT_PATH" | sha256sum | cut -d " " -f1)
+
+  PROJECT_SETTINGS_PATH="$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH/$PROJECT_HASH"
+  PROJECT_DOT_PATH="$PROJECT_SETTINGS_PATH/$CLODBOX_DOT_PATH"
+  PROJECT_CFG_FILE="$PROJECT_SETTINGS_PATH/$CLODBOX_CFG_FILE"
+
+  if [ ! -d "$PROJECT_PATH" ]; then
+    echo "Error: Project path '$PROJECT_PATH' does not exist." >&2
+    exit 1
+  fi
+
+  # Source per-project config if it exists
+  PROJECT_RC="$PROJECT_SETTINGS_PATH/project.rc"
+  if [ -f "$PROJECT_RC" ]; then
+    . "$PROJECT_RC"
+  fi
+}

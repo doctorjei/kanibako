@@ -60,10 +60,11 @@ else
   printf "Warning: No container runtime (podman/docker) found; skipping image setup.\n"
 fi
 
-# Copy executables and library into ~/.local/bin.
+# Copy executables and libraries into ~/.local/bin.
 printf "Installing executables... "
 cp "./clodbox-lib" "$HOME/.local/bin"
-for script in clodbox clodbox-remove clodbox-refresh-credentials; do
+cp "./clodbox-lib-common" "$HOME/.local/bin"
+for script in clodbox clodbox-config clodbox-archive clodbox-clean clodbox-restore clodbox-remove clodbox-refresh-credentials; do
   cp "./$script" "$HOME/.local/bin"
   chmod "+x" "$HOME/.local/bin/$script"
 done

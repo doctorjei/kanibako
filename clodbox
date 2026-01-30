@@ -229,245 +229,6 @@ _clodbox_init_() {
 }
 
 # Archive project session data and git metadata.
-_clodbox_archive_() {
-  local project_path="${1:-}"
-  local archive_file="${2:-}"
-
-  if [ -z "$project_path" ]; then
-    echo "Error: Project path required." >&2
-    echo "Usage: clodbox archive <project-path> [archive-file]" >&2
-    exit 1
-  fi
-
-  # Override project dir and load paths
-  CLODBOX_PROJECT_DIR="$project_path"
-  _clodbox_load_std_paths_
-  _clodbox_fetch_project_paths_
-
-  # Check if session data exists
-  if [ ! -d "$PROJECT_SETTINGS_PATH" ]; then
-    echo "Error: No session data found for project $PROJECT_PATH" >&2
-    exit 1
-  fi
-
-  # Generate default archive filename if not provided
-  if [ -z "$archive_file" ]; then
-    local basename=$(basename "$PROJECT_PATH")
-    local hash8="${PROJECT_HASH:0:8}"
-    local timestamp=$(date -u +%Y%m%dT%H%M%SZ)
-    archive_file="clodbox-${basename}-${hash8}-${timestamp}.txz"
-  fi
-
-  # Prepare metadata
-  local info_file="$PROJECT_SETTINGS_PATH/clodbox-archive-info.txt"
-  echo "Project path: $PROJECT_PATH" > "$info_file"
-  echo "Project hash: $PROJECT_HASH" >> "$info_file"
-  echo "Archive date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$info_file"
-  echo "" >> "$info_file"
-
-  # Check if project is a git repo
-  if [ -d "$PROJECT_PATH/.git" ]; then
-    cd "$PROJECT_PATH"
-
-    # Check for uncommitted changes unless allowed
-    if [ -z "${CLODBOX_ALLOW_UNCOMMITTED:-}" ]; then
-      if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        echo "Error: Uncommitted changes detected." >&2
-        echo "Commit your changes or use --allow-uncommitted to override." >&2
-        rm -f "$info_file"
-        exit 1
-      fi
-    fi
-
-    # Check for unpushed commits unless allowed
-    if [ -z "${CLODBOX_ALLOW_UNPUSHED:-}" ]; then
-      local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-      local upstream=$(git rev-parse --abbrev-ref @{upstream} 2>/dev/null || echo "")
-      if [ -n "$upstream" ]; then
-        local unpushed=$(git rev-list "$upstream..HEAD" --count 2>/dev/null || echo "0")
-        if [ "$unpushed" -gt 0 ]; then
-          echo "Error: $unpushed unpushed commit(s) detected." >&2
-          echo "Push your changes or use --allow-unpushed to override." >&2
-          rm -f "$info_file"
-          exit 1
-        fi
-      fi
-    fi
-
-    # Record git metadata
-    echo "Git repository: yes" >> "$info_file"
-    echo "Branch: $(git rev-parse --abbrev-ref HEAD)" >> "$info_file"
-    echo "Commit: $(git rev-parse HEAD)" >> "$info_file"
-    echo "Remotes:" >> "$info_file"
-    git remote -v | grep '(fetch)' | awk '{print "  " $1 ": " $2}' >> "$info_file"
-  else
-    echo "Warning: No git repository detected in $PROJECT_PATH" >&2
-    echo "Only clodbox session data will be archived." >&2
-    echo "" >> "$info_file"
-    echo "Git repository: no" >> "$info_file"
-  fi
-
-  # Create archive
-  printf "Creating archive %s... " "$archive_file"
-  tar -cJf "$archive_file" -C "$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH" "$PROJECT_HASH"
-  rm -f "$info_file"
-  printf "done.\n"
-  echo "Archive created: $archive_file"
-}
-
-# Clean project session data.
-_clodbox_clean_() {
-  local project_path="${1:-}"
-
-  if [ -z "$project_path" ]; then
-    echo "Error: Project path required." >&2
-    echo "Usage: clodbox clean <project-path>" >&2
-    exit 1
-  fi
-
-  # Override project dir and load paths
-  CLODBOX_PROJECT_DIR="$project_path"
-  _clodbox_load_std_paths_
-  _clodbox_fetch_project_paths_
-
-  # Check if session data exists
-  if [ ! -d "$PROJECT_SETTINGS_PATH" ]; then
-    echo "No session data found for project $PROJECT_PATH"
-    exit 0
-  fi
-
-  # Prompt for confirmation unless forced
-  if [ -z "${CLODBOX_FORCE:-}" ]; then
-    local hash8="${PROJECT_HASH:0:8}"
-    echo "Project: $PROJECT_PATH"
-    echo "Hash: $hash8"
-    echo ""
-    printf "Delete all session data for this project? This cannot be undone.\nType 'yes' to confirm: "
-    read -r response
-    if [ "$response" != "yes" ]; then
-      echo "Aborted."
-      exit 0
-    fi
-  fi
-
-  # Remove session data
-  printf "Removing session data... "
-  rm -rf "$PROJECT_SETTINGS_PATH"
-  printf "done.\n"
-  echo "Session data removed for $PROJECT_PATH"
-}
-
-# Restore project session data from archive.
-_clodbox_restore_() {
-  local project_path="${1:-}"
-  local archive_file="${2:-}"
-
-  if [ -z "$project_path" ] || [ -z "$archive_file" ]; then
-    echo "Error: Project path and archive file required." >&2
-    echo "Usage: clodbox restore <project-path> <archive-file>" >&2
-    exit 1
-  fi
-
-  if [ ! -f "$archive_file" ]; then
-    echo "Error: Archive file not found: $archive_file" >&2
-    exit 1
-  fi
-
-  # Override project dir and load paths
-  CLODBOX_PROJECT_DIR="$project_path"
-  _clodbox_load_std_paths_
-  _clodbox_fetch_project_paths_
-
-  # Extract metadata from archive
-  local temp_dir=$(mktemp -d)
-  trap "rm -rf $temp_dir" EXIT
-
-  tar -xJf "$archive_file" -C "$temp_dir" 2>/dev/null
-  local archive_hash=$(ls "$temp_dir" | head -n1)
-  local info_file="$temp_dir/$archive_hash/clodbox-archive-info.txt"
-
-  if [ ! -f "$info_file" ]; then
-    echo "Error: Invalid archive format (missing clodbox-archive-info.txt)" >&2
-    exit 1
-  fi
-
-  local archive_path=$(grep "^Project path:" "$info_file" | cut -d' ' -f3-)
-  local archive_basename=$(basename "$archive_path")
-  local current_basename=$(basename "$PROJECT_PATH")
-
-  # Validate hash match
-  local hash_match=0
-  if [ "$archive_hash" = "$PROJECT_HASH" ]; then
-    hash_match=1
-  elif [ "$archive_basename" = "$current_basename" ]; then
-    hash_match=1  # Same basename, different parent path
-  fi
-
-  if [ $hash_match -eq 0 ] && [ -z "${CLODBOX_FORCE:-}" ]; then
-    echo "Warning: Project path mismatch"
-    echo ""
-    echo "Archive from: $archive_path"
-    echo "Restoring to: $PROJECT_PATH"
-    echo ""
-    printf "Continue anyway? Type 'yes' to confirm: "
-    read -r response
-    if [ "$response" != "yes" ]; then
-      echo "Aborted."
-      exit 0
-    fi
-  fi
-
-  # Validate git state if archive has git metadata
-  local git_in_archive=$(grep "^Git repository:" "$info_file" | cut -d' ' -f3)
-  if [ "$git_in_archive" = "yes" ]; then
-    if [ ! -d "$PROJECT_PATH/.git" ]; then
-      if [ -z "${CLODBOX_FORCE:-}" ]; then
-        echo "Warning: Archive came from a git repository, but current workspace is not a git repo."
-        echo ""
-        grep "^Branch:\|^Commit:\|^Remotes:" "$info_file" | head -n3
-        echo ""
-        printf "Continue anyway? Type 'yes' to confirm: "
-        read -r response
-        if [ "$response" != "yes" ]; then
-          echo "Aborted."
-          exit 0
-        fi
-      fi
-    else
-      cd "$PROJECT_PATH"
-      local archive_commit=$(grep "^Commit:" "$info_file" | awk '{print $2}')
-      local current_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
-
-      if [ "$archive_commit" != "$current_commit" ] && [ -z "${CLODBOX_FORCE:-}" ]; then
-        echo "Warning: Git state mismatch"
-        echo ""
-        echo "Archive from:"
-        grep "^Branch:\|^Commit:" "$info_file" | sed 's/^/  /'
-        echo ""
-        echo "Current workspace:"
-        echo "  Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')"
-        echo "  Commit: $current_commit"
-        echo ""
-        printf "Continue anyway? Type 'yes' to confirm: "
-        read -r response
-        if [ "$response" != "yes" ]; then
-          echo "Aborted."
-          exit 0
-        fi
-      fi
-    fi
-  fi
-
-  # Restore session data
-  printf "Restoring session data... "
-  mkdir -p "$CLODBOX_DATA_PATH/$CLODBOX_PROJECTS_PATH"
-  rm -rf "$PROJECT_SETTINGS_PATH"
-  cp -rp "$temp_dir/$archive_hash" "$PROJECT_SETTINGS_PATH"
-  # Remove the info file from the restored data
-  rm -f "$PROJECT_SETTINGS_PATH/clodbox-archive-info.txt"
-  printf "done.\n"
-  echo "Session data restored to $PROJECT_PATH"
-}
 
 # Get or set per-project configuration.
 _clodbox_config_() {
@@ -612,22 +373,20 @@ CLODBOX_SUBCOMMAND="${CLODBOX_SUBCOMMAND:-start}"
 # Apply subcommand effects.
 case "$CLODBOX_SUBCOMMAND" in
   config)
-    _clodbox_load_std_paths_
-    _clodbox_fetch_project_paths_
-    _clodbox_config_ "$@"
-    exit 0
+    exec "$(dirname "$(realpath "$0")")/clodbox-config" "$@"
     ;;
   archive)
-    _clodbox_archive_ "$@"
-    exit 0
+    # Pass through flags as environment variables
+    export CLODBOX_ALLOW_UNCOMMITTED CLODBOX_ALLOW_UNPUSHED CLODBOX_FORCE
+    exec "$(dirname "$(realpath "$0")")/clodbox-archive" "$@"
     ;;
   clean)
-    _clodbox_clean_ "$@"
-    exit 0
+    export CLODBOX_FORCE
+    exec "$(dirname "$(realpath "$0")")/clodbox-clean" "$@"
     ;;
   restore)
-    _clodbox_restore_ "$@"
-    exit 0
+    export CLODBOX_FORCE
+    exec "$(dirname "$(realpath "$0")")/clodbox-restore" "$@"
     ;;
   shell)
     CLODBOX_ENTRYPOINT="/bin/bash"

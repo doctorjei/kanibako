@@ -312,8 +312,30 @@ base (Python, nano, archives, git, gh, ssh)
 
 This ensures users can switch between image variants (base, systems, jvm, android, ndk, dotnet, behemoth) and clodbox will automatically fetch or build as needed.
 
-### 7. Architecture note
+### 7. Split clodbox into modular scripts
+
+To prepare for future Python conversion, split subcommands into separate executable scripts:
+
+**New structure:**
+- `clodbox` — Main dispatcher + start/shell/resume (core container operations)
+- `clodbox-config` — Config subcommand (get/set per-project settings)
+- `clodbox-archive` — Archive subcommand (pack session data + git metadata)
+- `clodbox-clean` — Clean subcommand (remove session data)
+- `clodbox-restore` — Restore subcommand (restore from archive)
+- `clodbox-lib` — Base shared functions (path helpers, config location)
+- `clodbox-lib-common` — Extended shared functions (path loading, project paths)
+- `clodbox-refresh-credentials` — Cron job for credential sync
+- `clodbox-remove` — Uninstaller
+
+**Benefits:**
+- Each command is self-contained and independently testable
+- Can port to Python incrementally (e.g., replace `clodbox-archive` with `clodbox-archive.py`)
+- Main `clodbox` becomes a thin dispatcher (exec's other scripts)
+- Flags are passed via environment variables (`CLODBOX_FORCE`, `CLODBOX_ALLOW_UNCOMMITTED`, etc.)
+
+### 8. Architecture note
 
 **This is likely the last major feature to implement in shell scripts.** Future
 development should consider rewriting in Python for better maintainability,
-error handling, and testability before adding more complexity.
+error handling, and testability before adding more complexity. The modular
+structure now makes incremental porting feasible.
