@@ -29,8 +29,6 @@ _clodbox_start_() {
       && mv "$PROJECT_DOT_PATH/.credentials.json.tmp" "$PROJECT_DOT_PATH/.credentials.json"
   fi
 
-  OAUTH_TOKEN=$(jq -r '.claudeAiOauth.accessToken' "$PROJECT_DOT_PATH/.credentials.json")
-
   # Build CLI args to pass to the container entrypoint.
   CLI_ARGS=()
 
@@ -71,7 +69,6 @@ _clodbox_start_() {
     -w /home/agent/workspace \
     -v "$PROJECT_DOT_PATH":/home/agent/.claude:Z,U \
     -v "$PROJECT_CFG_FILE":/home/agent/.claude.json:Z,U \
-    -e "CLAUDE_CODE_OAUTH_TOKEN=$OAUTH_TOKEN" \
     "${ENTRYPOINT_ARGS[@]}" \
     "$CLODBOX_CONTAINER_IMAGE" \
     "${CLI_ARGS[@]}"
