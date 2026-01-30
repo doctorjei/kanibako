@@ -64,7 +64,7 @@ fi
 printf "Installing executables... "
 cp "./clodbox-lib" "$HOME/.local/bin"
 cp "./clodbox-lib-common" "$HOME/.local/bin"
-for script in clodbox clodbox-config clodbox-archive clodbox-clean clodbox-restore clodbox-remove clodbox-refresh-credentials; do
+for script in clodbox clodbox-config clodbox-image clodbox-archive clodbox-clean clodbox-restore clodbox-remove clodbox-refresh-credentials; do
   cp "./$script" "$HOME/.local/bin"
   chmod "+x" "$HOME/.local/bin/$script"
 done

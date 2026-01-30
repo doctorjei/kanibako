@@ -6,12 +6,27 @@ set -euo pipefail
 # Load shared library
 . "$(dirname "$(realpath "$0")")/clodbox-lib-common"
 
+_usage_() {
+  echo "Usage: clodbox restore <project-path> <archive-file>"
+  echo ""
+  echo "Restore session data from a .txz archive created by 'clodbox archive'."
+  echo ""
+  echo "Arguments:"
+  echo "  <project-path>     Path to the project directory"
+  echo "  <archive-file>     Archive file to restore from"
+  echo ""
+  echo "Options:"
+  echo "  --force              Skip all confirmation prompts"
+  echo "  -h, --help           Show this help message"
+}
+
+case "${1:-}" in -h|--help) _usage_; exit 0 ;; esac
+
 project_path="${1:-}"
 archive_file="${2:-}"
 
 if [ -z "$project_path" ] || [ -z "$archive_file" ]; then
-  echo "Error: Project path and archive file required." >&2
-  echo "Usage: clodbox restore <project-path> <archive-file>" >&2
+  _usage_ >&2
   exit 1
 fi
 

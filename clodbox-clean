@@ -6,11 +6,25 @@ set -euo pipefail
 # Load shared library
 . "$(dirname "$(realpath "$0")")/clodbox-lib-common"
 
+_usage_() {
+  echo "Usage: clodbox clean <project-path>"
+  echo ""
+  echo "Remove project session data (credentials, conversation history)."
+  echo ""
+  echo "Arguments:"
+  echo "  <project-path>     Path to the project directory"
+  echo ""
+  echo "Options:"
+  echo "  --force              Skip confirmation prompt"
+  echo "  -h, --help           Show this help message"
+}
+
+case "${1:-}" in -h|--help) _usage_; exit 0 ;; esac
+
 project_path="${1:-}"
 
 if [ -z "$project_path" ]; then
-  echo "Error: Project path required." >&2
-  echo "Usage: clodbox clean <project-path>" >&2
+  _usage_ >&2
   exit 1
 fi
 

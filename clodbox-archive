@@ -6,12 +6,29 @@ set -euo pipefail
 # Load shared library
 . "$(dirname "$(realpath "$0")")/clodbox-lib-common"
 
+_usage_() {
+  echo "Usage: clodbox archive <project-path> [archive-file]"
+  echo ""
+  echo "Archive project session data and git metadata to a .txz file."
+  echo ""
+  echo "Arguments:"
+  echo "  <project-path>     Path to the project directory"
+  echo "  [archive-file]     Output filename (default: auto-generated)"
+  echo ""
+  echo "Options:"
+  echo "  --allow-uncommitted  Allow archiving with uncommitted changes"
+  echo "  --allow-unpushed     Allow archiving with unpushed commits"
+  echo "  --force              Skip all confirmation prompts"
+  echo "  -h, --help           Show this help message"
+}
+
+case "${1:-}" in -h|--help) _usage_; exit 0 ;; esac
+
 project_path="${1:-}"
 archive_file="${2:-}"
 
 if [ -z "$project_path" ]; then
-  echo "Error: Project path required." >&2
-  echo "Usage: clodbox archive <project-path> [archive-file]" >&2
+  _usage_ >&2
   exit 1
 fi
 
