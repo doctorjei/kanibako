@@ -1,0 +1,19 @@
+ARG BASE_IMAGE=ghcr.io/doctorjei/clodbox-jvm:latest
+FROM $BASE_IMAGE
+
+USER root
+
+# Gradle (Android build tool)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gradle \
+    && rm -rf /var/lib/apt/lists/*
+
+# Android SDK (using command-line tools)
+# Note: This is a placeholder - full Android SDK setup requires additional configuration
+# Users should mount their own Android SDK or extend this image with specific SDK components
+RUN mkdir -p /opt/android-sdk
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH="${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools"
+
+USER agent
+WORKDIR /home/agent/workspace
