@@ -333,9 +333,33 @@ To prepare for future Python conversion, split subcommands into separate executa
 - Main `clodbox` becomes a thin dispatcher (exec's other scripts)
 - Flags are passed via environment variables (`CLODBOX_FORCE`, `CLODBOX_ALLOW_UNCOMMITTED`, etc.)
 
-### 8. Architecture note
+---
+
+## Session Summary and Current State
+
+This session accomplished:
+1. ✅ Archive/clean/restore commands with git integration
+2. ✅ Split container images into specialized variants (base, systems, jvm, android, ndk, dotnet, behemoth)
+3. ✅ Enhanced base image with essential tools (nano, xz-utils, archives)
+4. ✅ Auto-pull with local build fallback
+5. ✅ Modular script refactoring for Python migration prep
+
+**Container images building:** All 7 images pushed to ghcr.io via CI (behemoth is last to complete)
+
+**Current architecture:**
+- Modular shell scripts with thin dispatcher pattern
+- Self-contained commands ready for incremental Python porting
+- Comprehensive dev toolchain support (Python, C/C++, Rust, Java, C#, assembly)
+- Session archiving with git metadata preservation
+
+### Architecture note
 
 **This is likely the last major feature to implement in shell scripts.** Future
 development should consider rewriting in Python for better maintainability,
 error handling, and testability before adding more complexity. The modular
 structure now makes incremental porting feasible.
+
+**Recommended next steps for new sessions:**
+1. Begin Python conversion (start with `clodbox-archive`, `clodbox-clean`, `clodbox-restore`)
+2. Add proper unit tests for converted modules
+3. Consider adding `cloud` (Go) and `web` (Node.js) image variants if needed
