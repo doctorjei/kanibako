@@ -72,9 +72,16 @@ _clodbox_start_() {
     ENTRYPOINT_ARGS=(--entrypoint "$CLODBOX_ENTRYPOINT")
   fi
 
-  # Refresh auth credentials from central store into project copy.
+  # Refresh central credential store from host (if host copy is newer).
+  HOST_CREDS="$HOME/.claude/.credentials.json"
   CENTRAL_CREDS="$CLODBOX_CREDENTIALS_PATH/$CLODBOX_DOT_PATH/.credentials.json"
-  if [ -f "$CENTRAL_CREDS" ]; then
+  if [ -f "$HOST_CREDS" ]; then
+    _cp_if_newer_ "$HOST_CREDS" "$CENTRAL_CREDS"
+  fi
+
+  # Refresh auth credentials from central store into project copy (if newer).
+  if [ -f "$CENTRAL_CREDS" ] && { [ ! -f "$PROJECT_DOT_PATH/.credentials.json" ] \
+    || [ "$(stat -c %Y "$CENTRAL_CREDS")" -gt "$(stat -c %Y "$PROJECT_DOT_PATH/.credentials.json")" ]; }; then
     jq --argjson auth "$(jq '.claudeAiOauth' "$CENTRAL_CREDS")" \
       '.claudeAiOauth = $auth' "$PROJECT_DOT_PATH/.credentials.json" \
       > "$PROJECT_DOT_PATH/.credentials.json.tmp" \
@@ -115,7 +122,8 @@ _clodbox_start_() {
 
   CLI_ARGS+=("$@")
 
-  # Execute podman or docker.
+  # Execute podman or docker; capture exit code for write-back.
+  set +e
   docker run -it --rm --userns=keep-id \
     -v "$PROJECT_PATH":/home/agent/workspace:Z,U \
     -w /home/agent/workspace \
@@ -124,6 +132,16 @@ _clodbox_start_() {
     "${ENTRYPOINT_ARGS[@]}" \
     "$CLODBOX_CONTAINER_IMAGE" \
     "${CLI_ARGS[@]}"
+  rc=$?
+  set -e
+
+  # Write back refreshed credentials to central store and host.
+  if [ -f "$PROJECT_DOT_PATH/.credentials.json" ]; then
+    _cp_if_newer_ "$PROJECT_DOT_PATH/.credentials.json" "$CENTRAL_CREDS"
+    _cp_if_newer_ "$PROJECT_DOT_PATH/.credentials.json" "$HOME/.claude/.credentials.json"
+  fi
+
+  exit $rc
 }
 
 # Process standardized directories.
