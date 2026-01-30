@@ -16,11 +16,7 @@ else
 fi
 printf "done.\n"
 
-# Process credential locations
-printf "Removing clodbox project and authentication data... "
 CLODBOX_DATA=$(_get_abspath_ "${XDG_DATA_HOME:-}" "$HOME/.local/share")/"$CLODBOX_RELATIVE_STD_PATH"
-rm -rf "$CLODBOX_DATA"
-printf "done.\n"
 
 # Remove cron job
 printf "Removing credential refresh cron job... "
@@ -35,3 +31,6 @@ rm -f "$HOME/.local/bin/clodbox-lib"
 rm -f "$HOME/.local/bin/clodbox-refresh-credentials"
 rm -f "$HOME/.local/bin/clodbox-remove"
 printf "done.\n"
+
+printf "\nNote: Project and credential data remain in %s; to delete run the following command:\n\n" "$CLODBOX_DATA"
+printf "  rm -rf %s\n\n" "$CLODBOX_DATA"
