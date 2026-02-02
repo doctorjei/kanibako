@@ -138,6 +138,25 @@ class TestParser:
         args = parser.parse_args(["refresh-creds"])
         assert args.command == "refresh-creds"
 
+    def test_stop_command(self):
+        parser = build_parser()
+        args = parser.parse_args(["stop"])
+        assert args.command == "stop"
+        assert args.path is None
+        assert args.all_containers is False
+
+    def test_stop_with_path(self):
+        parser = build_parser()
+        args = parser.parse_args(["stop", "/tmp/myproject"])
+        assert args.command == "stop"
+        assert args.path == "/tmp/myproject"
+
+    def test_stop_all(self):
+        parser = build_parser()
+        args = parser.parse_args(["stop", "--all"])
+        assert args.command == "stop"
+        assert args.all_containers is True
+
     def test_start_with_agent_args(self):
         parser = build_parser()
         args = parser.parse_args(["start", "--", "--some-flag", "arg"])

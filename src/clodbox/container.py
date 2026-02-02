@@ -124,6 +124,7 @@ class ContainerRuntime:
         project_path: Path,
         dot_path: Path,
         cfg_file: Path,
+        name: str | None = None,
         entrypoint: str | None = None,
         cli_args: list[str] | None = None,
     ) -> int:
@@ -135,6 +136,8 @@ class ContainerRuntime:
             "-v", f"{dot_path}:/home/agent/.claude:Z,U",
             "-v", f"{cfg_file}:/home/agent/.claude.json:Z,U",
         ]
+        if name:
+            cmd += ["--name", name]
         if entrypoint:
             cmd += ["--entrypoint", entrypoint]
         cmd.append(image)
@@ -143,6 +146,32 @@ class ContainerRuntime:
 
         result = subprocess.run(cmd)
         return result.returncode
+
+    def stop(self, name: str) -> bool:
+        """Stop a running container by name. Returns True if stopped."""
+        result = subprocess.run(
+            [self.cmd, "stop", name],
+            capture_output=True,
+        )
+        return result.returncode == 0
+
+    def list_running(self, prefix: str = "clodbox-") -> list[tuple[str, str, str]]:
+        """Return running containers matching *prefix* as (name, image, status) tuples."""
+        result = subprocess.run(
+            [
+                self.cmd, "ps",
+                "--filter", f"name={prefix}",
+                "--format", "{{.Names}}\t{{.Image}}\t{{.Status}}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        containers: list[tuple[str, str, str]] = []
+        for line in result.stdout.splitlines():
+            parts = line.split("\t", 2)
+            if len(parts) == 3:
+                containers.append((parts[0], parts[1], parts[2]))
+        return containers
 
     # ------------------------------------------------------------------
     # Listing

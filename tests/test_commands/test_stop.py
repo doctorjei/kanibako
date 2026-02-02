@@ -1,0 +1,143 @@
+"""Tests for clodbox.commands.stop."""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from clodbox.commands.stop import run, _stop_one, _stop_all
+
+
+@pytest.fixture
+def mock_runtime():
+    rt = MagicMock()
+    rt.stop.return_value = True
+    rt.list_running.return_value = []
+    return rt
+
+
+class TestStopOne:
+    def test_running_container_stopped(self, mock_runtime, capsys):
+        with (
+            patch("clodbox.commands.stop.load_config"),
+            patch("clodbox.commands.stop.load_std_paths"),
+            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+        ):
+            proj = MagicMock()
+            proj.project_hash = "abcdef1234567890" * 4
+            m_resolve.return_value = proj
+
+            rc = _stop_one(mock_runtime, project_dir=None)
+            assert rc == 0
+            mock_runtime.stop.assert_called_once()
+            out = capsys.readouterr().out
+            assert "Stopped" in out
+
+    def test_no_running_container(self, mock_runtime, capsys):
+        mock_runtime.stop.return_value = False
+        with (
+            patch("clodbox.commands.stop.load_config"),
+            patch("clodbox.commands.stop.load_std_paths"),
+            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+        ):
+            proj = MagicMock()
+            proj.project_hash = "abcdef1234567890" * 4
+            proj.settings_path = MagicMock()
+            lock_path = MagicMock()
+            lock_path.__str__ = lambda self: "/fake/path/.clodbox.lock"
+            proj.settings_path.__truediv__ = MagicMock(return_value=lock_path)
+            m_resolve.return_value = proj
+
+            rc = _stop_one(mock_runtime, project_dir=None)
+            assert rc == 0
+            out = capsys.readouterr().out
+            assert "No running container" in out
+            assert "rm " in out
+            assert ".clodbox.lock" in out
+
+    def test_stop_with_project_dir(self, mock_runtime):
+        with (
+            patch("clodbox.commands.stop.load_config"),
+            patch("clodbox.commands.stop.load_std_paths"),
+            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+        ):
+            proj = MagicMock()
+            proj.project_hash = "abcdef1234567890" * 4
+            m_resolve.return_value = proj
+
+            _stop_one(mock_runtime, project_dir="/some/path")
+            # resolve_project called with the given path
+            call_kwargs = m_resolve.call_args
+            assert call_kwargs[1]["project_dir"] == "/some/path"
+            assert call_kwargs[1]["initialize"] is False
+
+
+class TestStopAll:
+    def test_stops_multiple_containers(self, mock_runtime, capsys):
+        mock_runtime.list_running.return_value = [
+            ("clodbox-aabbccdd", "img:latest", "Up 5 minutes"),
+            ("clodbox-11223344", "img:latest", "Up 10 minutes"),
+        ]
+        rc = _stop_all(mock_runtime)
+        assert rc == 0
+        assert mock_runtime.stop.call_count == 2
+        out = capsys.readouterr().out
+        assert "Stopped 2 container(s)" in out
+
+    def test_nothing_running(self, mock_runtime, capsys):
+        mock_runtime.list_running.return_value = []
+        rc = _stop_all(mock_runtime)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "No running clodbox containers" in out
+        mock_runtime.stop.assert_not_called()
+
+    def test_partial_failure(self, mock_runtime, capsys):
+        mock_runtime.list_running.return_value = [
+            ("clodbox-aabbccdd", "img:latest", "Up 5 minutes"),
+            ("clodbox-11223344", "img:latest", "Up 10 minutes"),
+        ]
+        mock_runtime.stop.side_effect = [True, False]
+        rc = _stop_all(mock_runtime)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Stopped 1 container(s)" in out
+        err = capsys.readouterr().err
+        # stderr captured on first readouterr call above
+
+
+class TestRunDispatch:
+    def test_dispatches_to_stop_all(self, capsys):
+        with patch("clodbox.commands.stop.ContainerRuntime") as m_cls:
+            rt = MagicMock()
+            rt.list_running.return_value = []
+            m_cls.return_value = rt
+            import argparse
+            args = argparse.Namespace(all_containers=True, path=None)
+            rc = run(args)
+            assert rc == 0
+            rt.list_running.assert_called_once()
+
+    def test_dispatches_to_stop_one(self):
+        with (
+            patch("clodbox.commands.stop.ContainerRuntime") as m_cls,
+            patch("clodbox.commands.stop._stop_one", return_value=0) as m_stop_one,
+        ):
+            rt = MagicMock()
+            m_cls.return_value = rt
+            import argparse
+            args = argparse.Namespace(all_containers=False, path=None)
+            rc = run(args)
+            assert rc == 0
+            m_stop_one.assert_called_once_with(rt, project_dir=None)
+
+    def test_runtime_not_found(self, capsys):
+        from clodbox.errors import ContainerError
+        with patch("clodbox.commands.stop.ContainerRuntime", side_effect=ContainerError("No runtime")):
+            import argparse
+            args = argparse.Namespace(all_containers=False, path=None)
+            rc = run(args)
+            assert rc == 1
+            err = capsys.readouterr().err
+            assert "No runtime" in err

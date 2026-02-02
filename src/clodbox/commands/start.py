@@ -16,6 +16,7 @@ from clodbox.credentials import (
 )
 from clodbox.errors import ConfigError, ContainerError
 from clodbox.paths import _xdg, load_std_paths, resolve_project
+from clodbox.utils import short_hash
 
 
 def add_start_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -186,6 +187,9 @@ def _run_container(
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    # Deterministic container name for stop/cleanup
+    container_name = f"clodbox-{short_hash(proj.project_hash)}"
+
     # Concurrency lock (known issue #3)
     lock_file = proj.settings_path / ".clodbox.lock"
     lock_file.parent.mkdir(parents=True, exist_ok=True)
@@ -199,6 +203,10 @@ def _run_container(
         )
         lock_fd.close()
         return 1
+
+    # Record container name so `clodbox stop` can find it
+    lock_fd.write(container_name + "\n")
+    lock_fd.flush()
 
     try:
         # Credential refresh: host → central → project
@@ -235,6 +243,7 @@ def _run_container(
             project_path=proj.project_path,
             dot_path=proj.dot_path,
             cfg_file=proj.cfg_file,
+            name=container_name,
             entrypoint=entrypoint,
             cli_args=cli_args or None,
         )
