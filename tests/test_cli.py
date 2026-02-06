@@ -162,6 +162,18 @@ class TestParser:
         args = parser.parse_args(["refresh-creds"])
         assert args.command == "refresh-creds"
 
+    def test_upgrade_command(self):
+        parser = build_parser()
+        args = parser.parse_args(["upgrade"])
+        assert args.command == "upgrade"
+        assert args.check is False
+
+    def test_upgrade_check(self):
+        parser = build_parser()
+        args = parser.parse_args(["upgrade", "--check"])
+        assert args.command == "upgrade"
+        assert args.check is True
+
     def test_stop_command(self):
         parser = build_parser()
         args = parser.parse_args(["stop"])
