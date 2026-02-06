@@ -123,6 +123,30 @@ class TestParser:
         args = parser.parse_args(["image"])
         assert args.command == "image"
 
+    def test_image_list(self):
+        parser = build_parser()
+        args = parser.parse_args(["image", "list"])
+        assert args.command == "image"
+        assert args.image_command == "list"
+
+    def test_image_rebuild(self):
+        parser = build_parser()
+        args = parser.parse_args(["image", "rebuild"])
+        assert args.command == "image"
+        assert args.image_command == "rebuild"
+        assert args.image is None
+        assert args.all_images is False
+
+    def test_image_rebuild_specific(self):
+        parser = build_parser()
+        args = parser.parse_args(["image", "rebuild", "clodbox-base:latest"])
+        assert args.image == "clodbox-base:latest"
+
+    def test_image_rebuild_all(self):
+        parser = build_parser()
+        args = parser.parse_args(["image", "rebuild", "--all"])
+        assert args.all_images is True
+
     def test_setup_command(self):
         parser = build_parser()
         args = parser.parse_args(["setup"])

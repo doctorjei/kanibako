@@ -30,16 +30,43 @@ _VARIANT_DESCRIPTIONS = {
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "image",
-        help="List available container images",
+        help="List or rebuild container images",
+        description="List available container images or rebuild them.",
+    )
+    image_sub = p.add_subparsers(dest="image_command", metavar="COMMAND")
+
+    # clodbox image list (default behavior)
+    list_p = image_sub.add_parser(
+        "list",
+        help="List available container images (default)",
         description="List available container images (built-in variants, local, and remote).",
     )
-    p.add_argument(
+    list_p.add_argument(
         "-p", "--project", default=None, help="Show current image for a specific project"
     )
-    p.set_defaults(func=run)
+    list_p.set_defaults(func=run_list)
+
+    # clodbox image rebuild
+    rebuild_p = image_sub.add_parser(
+        "rebuild",
+        help="Rebuild container image(s) with latest packages",
+        description="Rebuild container image(s) from Containerfile with --no-cache.",
+    )
+    rebuild_p.add_argument(
+        "image", nargs="?", default=None,
+        help="Image to rebuild (default: current configured image)",
+    )
+    rebuild_p.add_argument(
+        "--all", action="store_true", dest="all_images",
+        help="Rebuild all local clodbox images",
+    )
+    rebuild_p.set_defaults(func=run_rebuild)
+
+    # Default to list if no subcommand given
+    p.set_defaults(func=run_list, project=None)
 
 
-def run(args: argparse.Namespace) -> int:
+def run_list(args: argparse.Namespace) -> int:
     config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
@@ -125,3 +152,92 @@ def _list_remote_packages(owner: str) -> None:
             print(f"  ghcr.io/{owner}/{pkg}")
     else:
         print(f"  (no clodbox packages found for {owner})")
+
+
+def run_rebuild(args: argparse.Namespace) -> int:
+    """Rebuild container image(s) with --no-cache."""
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config = load_config(config_file)
+    std = load_std_paths(config)
+    containers_dir = std.data_path / "containers"
+
+    try:
+        runtime = ContainerRuntime()
+    except ContainerError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    if not containers_dir.is_dir():
+        print(f"Error: containers directory not found: {containers_dir}", file=sys.stderr)
+        print("Run 'clodbox setup' first.", file=sys.stderr)
+        return 1
+
+    if args.all_images:
+        return _rebuild_all(runtime, containers_dir)
+
+    # Determine which image to rebuild
+    image = args.image
+    if image is None:
+        # Use current configured image
+        merged = load_merged_config(config_file, None)
+        image = merged.container_image
+
+    return _rebuild_one(runtime, image, containers_dir)
+
+
+def _rebuild_one(runtime: ContainerRuntime, image: str, containers_dir: Path) -> int:
+    """Rebuild a single image."""
+    suffix = runtime.guess_containerfile(image)
+    if suffix is None:
+        print(f"Error: cannot determine Containerfile for image: {image}", file=sys.stderr)
+        print("Known patterns: " + ", ".join(
+            f"{p} -> Containerfile.{s}"
+            for p, s in sorted(set(
+                (p, runtime.guess_containerfile(p))
+                for p in ["clodbox-base", "clodbox-systems", "clodbox-jvm",
+                          "clodbox-android", "clodbox-ndk", "clodbox-dotnet",
+                          "clodbox-behemoth"]
+            ))
+        ), file=sys.stderr)
+        return 1
+
+    containerfile = containers_dir / f"Containerfile.{suffix}"
+    if not containerfile.is_file():
+        print(f"Error: Containerfile not found: {containerfile}", file=sys.stderr)
+        return 1
+
+    print(f"Rebuilding {image} from Containerfile.{suffix}...")
+    print()
+    rc = runtime.rebuild(image, containerfile, containers_dir)
+    if rc == 0:
+        print()
+        print(f"Successfully rebuilt {image}")
+    else:
+        print()
+        print(f"Build failed with exit code {rc}", file=sys.stderr)
+    return rc
+
+
+def _rebuild_all(runtime: ContainerRuntime, containers_dir: Path) -> int:
+    """Rebuild all local clodbox images."""
+    images = runtime.list_local_images()
+    if not images:
+        print("No local clodbox images to rebuild.")
+        return 0
+
+    failed = 0
+    for repo, _size in images:
+        print(f"\n{'=' * 60}")
+        print(f"Rebuilding {repo}")
+        print('=' * 60)
+        rc = _rebuild_one(runtime, repo, containers_dir)
+        if rc != 0:
+            failed += 1
+
+    print()
+    if failed:
+        print(f"Rebuilt {len(images) - failed}/{len(images)} images ({failed} failed)")
+        return 1
+    else:
+        print(f"Rebuilt {len(images)} image(s) successfully.")
+        return 0

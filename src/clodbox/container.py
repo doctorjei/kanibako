@@ -77,6 +77,20 @@ class ContainerRuntime:
                 f"Failed to build image {image}:\n{result.stderr}"
             )
 
+    def rebuild(self, image: str, containerfile: Path, context: Path) -> int:
+        """Rebuild *image* with --no-cache, streaming output. Returns exit code."""
+        result = subprocess.run(
+            [
+                self.cmd, "build", "--no-cache",
+                "-t", image, "-f", str(containerfile), str(context),
+            ],
+        )
+        return result.returncode
+
+    def guess_containerfile(self, image: str) -> str | None:
+        """Return the Containerfile suffix for a known image pattern, or None."""
+        return self._guess_containerfile(image)
+
     def ensure_image(self, image: str, containers_dir: Path) -> None:
         """Make sure *image* is available locally: inspect → pull → build fallback."""
         if self.image_exists(image):
