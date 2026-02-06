@@ -39,14 +39,16 @@ RUN existing_user=$(getent passwd 1000 | cut -d: -f1); \
     && echo "agent ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/agent \
     && chmod 0440 /etc/sudoers.d/agent
 
-# Install Claude Code as agent user (native binary goes to ~/.local/bin)
+# Switch to agent user
 USER agent
 WORKDIR /home/agent
-RUN curl -fsSL https://claude.ai/install.sh | bash
 
+# Claude Code is bind-mounted from the host at runtime.
+# Set up PATH and create required directories.
 ENV PATH="/home/agent/.local/bin:${PATH}"
 
-RUN mkdir -p /home/agent/workspace /home/agent/.claude
+RUN mkdir -p /home/agent/workspace /home/agent/.claude \
+    /home/agent/.local/bin /home/agent/.local/share/claude
 
 WORKDIR /home/agent/workspace
 

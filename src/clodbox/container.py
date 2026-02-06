@@ -6,9 +6,43 @@ import os
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from clodbox.errors import ContainerError
+
+
+@dataclass
+class ClaudeInstall:
+    """Information about a Claude Code installation."""
+
+    binary: Path  # The claude binary or symlink (e.g., ~/.local/bin/claude)
+    install_dir: Path  # Directory containing version files (e.g., ~/.local/share/claude)
+
+
+def detect_claude_install() -> ClaudeInstall | None:
+    """Detect Claude Code installation on the host.
+
+    Returns ClaudeInstall with paths, or None if not found.
+    """
+    # Find claude in PATH
+    claude_path = shutil.which("claude")
+    if not claude_path:
+        return None
+
+    binary = Path(claude_path)
+
+    # Resolve symlink to find the actual binary
+    try:
+        resolved = binary.resolve()
+    except OSError:
+        return None
+
+    # The install directory is the parent of the resolved binary
+    # e.g., ~/.local/share/claude/2.1.34 -> ~/.local/share/claude
+    install_dir = resolved.parent
+
+    return ClaudeInstall(binary=binary, install_dir=install_dir)
 
 
 # Map image name patterns to Containerfile suffixes.
@@ -138,6 +172,7 @@ class ContainerRuntime:
         project_path: Path,
         dot_path: Path,
         cfg_file: Path,
+        claude_install: ClaudeInstall | None = None,
         name: str | None = None,
         entrypoint: str | None = None,
         cli_args: list[str] | None = None,
@@ -150,6 +185,12 @@ class ContainerRuntime:
             "-v", f"{dot_path}:/home/agent/.claude:Z,U",
             "-v", f"{cfg_file}:/home/agent/.claude.json:Z,U",
         ]
+        # Mount host's Claude installation if available
+        if claude_install:
+            cmd += [
+                "-v", f"{claude_install.install_dir}:/home/agent/.local/share/claude:ro",
+                "-v", f"{claude_install.binary}:/home/agent/.local/bin/claude:ro",
+            ]
         if name:
             cmd += ["--name", name]
         if entrypoint:

@@ -2,12 +2,39 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from clodbox.container import ContainerRuntime
+from clodbox.container import ContainerRuntime, detect_claude_install
 from clodbox.errors import ContainerError
+
+
+class TestDetectClaudeInstall:
+    def test_finds_claude_in_path(self, tmp_path):
+        # Set up a fake claude installation
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        share_dir = tmp_path / "share" / "claude"
+        share_dir.mkdir(parents=True)
+
+        # Create a version file and symlink
+        version_file = share_dir / "2.1.34"
+        version_file.write_text("fake binary")
+        claude_link = bin_dir / "claude"
+        claude_link.symlink_to(version_file)
+
+        with patch("shutil.which", return_value=str(claude_link)):
+            result = detect_claude_install()
+            assert result is not None
+            assert result.binary == claude_link
+            assert result.install_dir == share_dir
+
+    def test_returns_none_when_not_found(self):
+        with patch("shutil.which", return_value=None):
+            result = detect_claude_install()
+            assert result is None
 
 
 class TestContainerRuntime:

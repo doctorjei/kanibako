@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from clodbox.config import load_config, load_merged_config
-from clodbox.container import ContainerRuntime
+from clodbox.container import ContainerRuntime, detect_claude_install
 from clodbox.credentials import (
     refresh_central_to_project,
     refresh_host_to_central,
@@ -187,6 +187,14 @@ def _run_container(
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    # Detect host Claude installation for bind-mounting
+    claude_install = detect_claude_install()
+    if claude_install:
+        print(
+            f"Using host Claude: {claude_install.binary}",
+            file=sys.stderr,
+        )
+
     # Deterministic container name for stop/cleanup
     container_name = f"clodbox-{short_hash(proj.project_hash)}"
 
@@ -243,6 +251,7 @@ def _run_container(
             project_path=proj.project_path,
             dot_path=proj.dot_path,
             cfg_file=proj.cfg_file,
+            claude_install=claude_install,
             name=container_name,
             entrypoint=entrypoint,
             cli_args=cli_args or None,

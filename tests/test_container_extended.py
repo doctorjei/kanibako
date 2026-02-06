@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from clodbox.container import ContainerRuntime
+from clodbox.container import ContainerRuntime, ClaudeInstall
 from clodbox.errors import ContainerError
 
 
@@ -147,6 +147,42 @@ class TestRunCommandAssembly:
             )
             cmd = m_run.call_args[0][0]
             assert cmd[-2:] == ["--continue", "--verbose"]
+
+    def test_claude_install_mounts(self):
+        rt = self._make_rt()
+        claude = ClaudeInstall(
+            binary=Path("/home/user/.local/bin/claude"),
+            install_dir=Path("/home/user/.local/share/claude"),
+        )
+        with patch("clodbox.container.subprocess.run") as m_run:
+            m_run.return_value = MagicMock(returncode=0)
+            rt.run(
+                "img:latest",
+                project_path=Path("/proj"),
+                dot_path=Path("/dot"),
+                cfg_file=Path("/cfg.json"),
+                claude_install=claude,
+            )
+            cmd = m_run.call_args[0][0]
+            # Check claude mounts are present
+            assert "/home/user/.local/share/claude:/home/agent/.local/share/claude:ro" in cmd
+            assert "/home/user/.local/bin/claude:/home/agent/.local/bin/claude:ro" in cmd
+
+    def test_no_claude_install(self):
+        rt = self._make_rt()
+        with patch("clodbox.container.subprocess.run") as m_run:
+            m_run.return_value = MagicMock(returncode=0)
+            rt.run(
+                "img:latest",
+                project_path=Path("/proj"),
+                dot_path=Path("/dot"),
+                cfg_file=Path("/cfg.json"),
+                claude_install=None,
+            )
+            cmd = m_run.call_args[0][0]
+            # No claude-specific mounts
+            cmd_str = " ".join(cmd)
+            assert ".local/share/claude" not in cmd_str
 
     def test_cli_args_none(self):
         rt = self._make_rt()
