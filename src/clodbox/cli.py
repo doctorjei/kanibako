@@ -43,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     from clodbox.commands.install import add_parser as add_setup_parser
     from clodbox.commands.remove import add_parser as add_remove_parser
     from clodbox.commands.stop import add_parser as add_stop_parser
+    from clodbox.commands.upgrade import add_parser as add_upgrade_parser
     from clodbox.commands.refresh_credentials import (
         add_parser as add_refresh_creds_parser,
     )
@@ -58,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_restore_parser(subparsers)
     add_setup_parser(subparsers)
     add_remove_parser(subparsers)
+    add_upgrade_parser(subparsers)
     add_refresh_creds_parser(subparsers)
 
     return parser
@@ -65,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 _SUBCOMMANDS = {
     "start", "shell", "resume", "stop", "config", "image",
-    "archive", "purge", "restore", "setup", "remove",
+    "archive", "purge", "restore", "setup", "remove", "upgrade",
     "refresh-creds",
 }
 
