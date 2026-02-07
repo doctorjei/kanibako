@@ -49,16 +49,23 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     # clodbox image rebuild
     rebuild_p = image_sub.add_parser(
         "rebuild",
-        help="Rebuild container image(s) with latest packages",
-        description="Rebuild container image(s) from Containerfile with --no-cache.",
+        help="Update container image(s) from registry (or rebuild locally)",
+        description=(
+            "Pull the latest image from the registry (default), or rebuild\n"
+            "locally from Containerfiles with --local."
+        ),
     )
     rebuild_p.add_argument(
         "image", nargs="?", default=None,
-        help="Image to rebuild (default: current configured image)",
+        help="Image to update (default: current configured image)",
     )
     rebuild_p.add_argument(
         "--all", action="store_true", dest="all_images",
-        help="Rebuild all local clodbox images",
+        help="Update all local clodbox images",
+    )
+    rebuild_p.add_argument(
+        "--local", action="store_true", dest="local_build",
+        help="Build from local Containerfiles instead of pulling from registry",
     )
     rebuild_p.set_defaults(func=run_rebuild)
 
@@ -155,7 +162,7 @@ def _list_remote_packages(owner: str) -> None:
 
 
 def run_rebuild(args: argparse.Namespace) -> int:
-    """Rebuild container image(s) with --no-cache."""
+    """Update container image(s): pull from registry (default) or build locally."""
     config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
@@ -167,26 +174,41 @@ def run_rebuild(args: argparse.Namespace) -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    if not containers_dir.is_dir():
+    local_build = getattr(args, "local_build", False)
+
+    if local_build and not containers_dir.is_dir():
         print(f"Error: containers directory not found: {containers_dir}", file=sys.stderr)
         print("Run 'clodbox setup' first.", file=sys.stderr)
         return 1
 
     if args.all_images:
-        return _rebuild_all(runtime, containers_dir)
+        return _update_all(runtime, containers_dir, local_build=local_build)
 
-    # Determine which image to rebuild
+    # Determine which image to update
     image = args.image
     if image is None:
-        # Use current configured image
         merged = load_merged_config(config_file, None)
         image = merged.container_image
 
-    return _rebuild_one(runtime, image, containers_dir)
+    return _update_one(runtime, image, containers_dir, local_build=local_build)
 
 
-def _rebuild_one(runtime: ContainerRuntime, image: str, containers_dir: Path) -> int:
-    """Rebuild a single image."""
+def _pull_one(runtime: ContainerRuntime, image: str) -> int:
+    """Pull a single image from the registry."""
+    print(f"Pulling {image}...")
+    print()
+    if runtime.pull(image, quiet=False):
+        print()
+        print(f"Successfully pulled {image}")
+        return 0
+    else:
+        print()
+        print(f"Failed to pull {image}", file=sys.stderr)
+        return 1
+
+
+def _build_one(runtime: ContainerRuntime, image: str, containers_dir: Path) -> int:
+    """Build a single image locally from its Containerfile."""
     suffix = runtime.guess_containerfile(image)
     if suffix is None:
         print(f"Error: cannot determine Containerfile for image: {image}", file=sys.stderr)
@@ -206,38 +228,49 @@ def _rebuild_one(runtime: ContainerRuntime, image: str, containers_dir: Path) ->
         print(f"Error: Containerfile not found: {containerfile}", file=sys.stderr)
         return 1
 
-    print(f"Rebuilding {image} from Containerfile.{suffix}...")
+    print(f"Building {image} from Containerfile.{suffix}...")
     print()
     rc = runtime.rebuild(image, containerfile, containers_dir)
     if rc == 0:
         print()
-        print(f"Successfully rebuilt {image}")
+        print(f"Successfully built {image}")
     else:
         print()
         print(f"Build failed with exit code {rc}", file=sys.stderr)
     return rc
 
 
-def _rebuild_all(runtime: ContainerRuntime, containers_dir: Path) -> int:
-    """Rebuild all local clodbox images."""
+def _update_one(
+    runtime: ContainerRuntime, image: str, containers_dir: Path, *, local_build: bool
+) -> int:
+    """Update a single image: pull from registry or build locally."""
+    if local_build:
+        return _build_one(runtime, image, containers_dir)
+    return _pull_one(runtime, image)
+
+
+def _update_all(
+    runtime: ContainerRuntime, containers_dir: Path, *, local_build: bool
+) -> int:
+    """Update all local clodbox images."""
     images = runtime.list_local_images()
     if not images:
-        print("No local clodbox images to rebuild.")
+        print("No local clodbox images to update.")
         return 0
 
     failed = 0
     for repo, _size in images:
         print(f"\n{'=' * 60}")
-        print(f"Rebuilding {repo}")
+        print(f"Updating {repo}")
         print('=' * 60)
-        rc = _rebuild_one(runtime, repo, containers_dir)
+        rc = _update_one(runtime, repo, containers_dir, local_build=local_build)
         if rc != 0:
             failed += 1
 
     print()
     if failed:
-        print(f"Rebuilt {len(images) - failed}/{len(images)} images ({failed} failed)")
+        print(f"Updated {len(images) - failed}/{len(images)} images ({failed} failed)")
         return 1
     else:
-        print(f"Rebuilt {len(images)} image(s) successfully.")
+        print(f"Updated {len(images)} image(s) successfully.")
         return 0

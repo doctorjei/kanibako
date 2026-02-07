@@ -98,11 +98,11 @@ class ContainerRuntime:
         )
         return result.returncode == 0
 
-    def pull(self, image: str) -> bool:
+    def pull(self, image: str, *, quiet: bool = True) -> bool:
         """Pull *image* from registry. Returns True on success."""
         result = subprocess.run(
             [self.cmd, "pull", image],
-            capture_output=True,
+            capture_output=quiet,
         )
         return result.returncode == 0
 

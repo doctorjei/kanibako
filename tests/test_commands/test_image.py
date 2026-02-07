@@ -29,12 +29,30 @@ class TestImage:
 
 
 class TestImageRebuild:
-    def test_rebuild_one_success(self, tmp_home, config_file, credentials_dir, capsys):
-        """Test rebuilding a single image."""
+    def test_pull_one_success(self, tmp_home, config_file, credentials_dir, capsys):
+        """Default rebuild pulls from registry."""
         from unittest.mock import MagicMock, patch
         from clodbox.commands.image import run_rebuild
 
-        # Create containers dir with a Containerfile
+        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+            runtime = MagicMock()
+            runtime.pull.return_value = True
+            MockRT.return_value = runtime
+
+            args = argparse.Namespace(
+                image="ghcr.io/foo/clodbox-base:latest",
+                all_images=False, local_build=False,
+            )
+            rc = run_rebuild(args)
+            assert rc == 0
+            runtime.pull.assert_called_once()
+            runtime.rebuild.assert_not_called()
+
+    def test_local_build_one_success(self, tmp_home, config_file, credentials_dir, capsys):
+        """--local flag triggers local build from Containerfile."""
+        from unittest.mock import MagicMock, patch
+        from clodbox.commands.image import run_rebuild
+
         from clodbox.config import load_config
         from clodbox.paths import load_std_paths
         config = load_config(config_file)
@@ -49,13 +67,16 @@ class TestImageRebuild:
             runtime.rebuild.return_value = 0
             MockRT.return_value = runtime
 
-            args = argparse.Namespace(image="clodbox-base:latest", all_images=False)
+            args = argparse.Namespace(
+                image="clodbox-base:latest",
+                all_images=False, local_build=True,
+            )
             rc = run_rebuild(args)
             assert rc == 0
             runtime.rebuild.assert_called_once()
 
-    def test_rebuild_unknown_image(self, tmp_home, config_file, credentials_dir, capsys):
-        """Test error when image pattern is unknown."""
+    def test_local_build_unknown_image(self, tmp_home, config_file, credentials_dir, capsys):
+        """--local with unknown image pattern errors."""
         from unittest.mock import MagicMock, patch
         from clodbox.commands.image import run_rebuild
 
@@ -71,25 +92,19 @@ class TestImageRebuild:
             runtime.guess_containerfile.return_value = None
             MockRT.return_value = runtime
 
-            args = argparse.Namespace(image="unknown:latest", all_images=False)
+            args = argparse.Namespace(
+                image="unknown:latest",
+                all_images=False, local_build=True,
+            )
             rc = run_rebuild(args)
             assert rc == 1
             captured = capsys.readouterr()
             assert "cannot determine Containerfile" in captured.err
 
-    def test_rebuild_all(self, tmp_home, config_file, credentials_dir, capsys):
-        """Test rebuilding all local images."""
+    def test_pull_all(self, tmp_home, config_file, credentials_dir, capsys):
+        """Default --all pulls all local images from registry."""
         from unittest.mock import MagicMock, patch
         from clodbox.commands.image import run_rebuild
-
-        from clodbox.config import load_config
-        from clodbox.paths import load_std_paths
-        config = load_config(config_file)
-        std = load_std_paths(config)
-        containers_dir = std.data_path / "containers"
-        containers_dir.mkdir(parents=True, exist_ok=True)
-        (containers_dir / "Containerfile.base").write_text("FROM ubuntu\n")
-        (containers_dir / "Containerfile.jvm").write_text("FROM ubuntu\n")
 
         with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
@@ -97,14 +112,15 @@ class TestImageRebuild:
                 ("ghcr.io/foo/clodbox-base:latest", "1GB"),
                 ("ghcr.io/foo/clodbox-jvm:latest", "2GB"),
             ]
-            runtime.guess_containerfile.side_effect = ["base", "jvm"]
-            runtime.rebuild.return_value = 0
+            runtime.pull.return_value = True
             MockRT.return_value = runtime
 
-            args = argparse.Namespace(image=None, all_images=True)
+            args = argparse.Namespace(
+                image=None, all_images=True, local_build=False,
+            )
             rc = run_rebuild(args)
             assert rc == 0
-            assert runtime.rebuild.call_count == 2
+            assert runtime.pull.call_count == 2
 
 
 class TestExtractGhcrOwner:
