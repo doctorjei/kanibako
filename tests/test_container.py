@@ -27,7 +27,7 @@ class TestDetectClaudeInstall:
         with patch("shutil.which", return_value=str(claude_link)):
             result = detect_claude_install()
             assert result is not None
-            assert result.binary == version_file.resolve()
+            assert result.binary == claude_link
             assert result.install_dir == claude_dir
 
     def test_versions_layout(self, tmp_path):
@@ -46,7 +46,7 @@ class TestDetectClaudeInstall:
         with patch("shutil.which", return_value=str(claude_link)):
             result = detect_claude_install()
             assert result is not None
-            assert result.binary == version_file.resolve()
+            assert result.binary == claude_link
             assert result.install_dir == claude_dir
 
     def test_deep_nesting_layout(self, tmp_path):
@@ -65,7 +65,7 @@ class TestDetectClaudeInstall:
         with patch("shutil.which", return_value=str(claude_link)):
             result = detect_claude_install()
             assert result is not None
-            assert result.binary == version_file.resolve()
+            assert result.binary == claude_link
             assert result.install_dir == claude_dir
 
     def test_fallback_when_no_claude_dir(self, tmp_path):
@@ -83,7 +83,7 @@ class TestDetectClaudeInstall:
         with patch("shutil.which", return_value=str(claude_link)):
             result = detect_claude_install()
             assert result is not None
-            assert result.binary == version_file.resolve()
+            assert result.binary == claude_link
             assert result.install_dir == weird_dir
 
     def test_returns_none_when_not_found(self):
