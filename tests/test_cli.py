@@ -72,51 +72,110 @@ class TestParser:
         assert args.clear is True
         assert args.key is None
 
-    def test_archive_command(self):
+    def test_box_command(self):
         parser = build_parser()
-        args = parser.parse_args(["archive", "/tmp/project", "out.txz"])
-        assert args.command == "archive"
+        args = parser.parse_args(["box"])
+        assert args.command == "box"
+
+    def test_box_list(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "list"])
+        assert args.command == "box"
+        assert args.box_command == "list"
+
+    def test_box_archive_command(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "archive", "/tmp/project", "out.txz"])
+        assert args.command == "box"
+        assert args.box_command == "archive"
         assert args.path == "/tmp/project"
         assert args.file == "out.txz"
 
-    def test_archive_flags(self):
+    def test_box_archive_flags(self):
         parser = build_parser()
         args = parser.parse_args(
-            ["archive", "/tmp/proj", "--allow-uncommitted", "--allow-unpushed"]
+            ["box", "archive", "/tmp/proj", "--allow-uncommitted", "--allow-unpushed"]
         )
         assert args.allow_uncommitted is True
         assert args.allow_unpushed is True
 
-    def test_archive_all(self):
+    def test_box_archive_all(self):
         parser = build_parser()
-        args = parser.parse_args(["archive", "--all"])
+        args = parser.parse_args(["box", "archive", "--all"])
         assert args.all_projects is True
         assert args.path is None
 
-    def test_purge_command(self):
+    def test_box_purge_command(self):
         parser = build_parser()
-        args = parser.parse_args(["purge", "/tmp/project", "--force"])
-        assert args.command == "purge"
+        args = parser.parse_args(["box", "purge", "/tmp/project", "--force"])
+        assert args.command == "box"
+        assert args.box_command == "purge"
         assert args.force is True
 
-    def test_purge_all(self):
+    def test_box_purge_all(self):
         parser = build_parser()
-        args = parser.parse_args(["purge", "--all"])
+        args = parser.parse_args(["box", "purge", "--all"])
         assert args.all_projects is True
         assert args.path is None
 
-    def test_restore_command(self):
+    def test_box_restore_command(self):
         parser = build_parser()
-        args = parser.parse_args(["restore", "/tmp/project", "archive.txz"])
-        assert args.command == "restore"
+        args = parser.parse_args(["box", "restore", "/tmp/project", "archive.txz"])
+        assert args.command == "box"
+        assert args.box_command == "restore"
         assert args.path == "/tmp/project"
         assert args.file == "archive.txz"
 
-    def test_restore_all(self):
+    def test_box_restore_all(self):
         parser = build_parser()
-        args = parser.parse_args(["restore", "--all"])
+        args = parser.parse_args(["box", "restore", "--all"])
         assert args.all_archives is True
         assert args.path is None
+
+    def test_box_migrate_command(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "migrate", "/old", "/new"])
+        assert args.command == "box"
+        assert args.box_command == "migrate"
+        assert args.old_path == "/old"
+        assert args.new_path == "/new"
+
+    def test_box_migrate_defaults_new_path(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "migrate", "/old"])
+        assert args.old_path == "/old"
+        assert args.new_path is None
+
+    def test_box_migrate_force(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "migrate", "/old", "--force"])
+        assert args.force is True
+
+    def test_box_duplicate_command(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "duplicate", "/src", "/dst"])
+        assert args.command == "box"
+        assert args.box_command == "duplicate"
+        assert args.source_path == "/src"
+        assert args.new_path == "/dst"
+        assert args.bare is False
+        assert args.force is False
+
+    def test_box_duplicate_bare(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "duplicate", "/src", "/dst", "--bare"])
+        assert args.bare is True
+
+    def test_box_duplicate_force(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "duplicate", "/src", "/dst", "--force"])
+        assert args.force is True
+
+    def test_box_duplicate_bare_and_force(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "duplicate", "/src", "/dst", "--bare", "--force"])
+        assert args.bare is True
+        assert args.force is True
 
     def test_image_command(self):
         parser = build_parser()
