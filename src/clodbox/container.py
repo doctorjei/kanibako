@@ -16,7 +16,7 @@ from clodbox.errors import ContainerError
 class ClaudeInstall:
     """Information about a Claude Code installation."""
 
-    binary: Path  # Resolved path to the actual claude binary
+    binary: Path  # Host symlink (e.g., ~/.local/bin/claude); podman follows it on mount
     install_dir: Path  # Root of the Claude installation (e.g., ~/.local/share/claude)
 
 
@@ -49,7 +49,7 @@ def detect_claude_install() -> ClaudeInstall | None:
     if install_dir.name != "claude":
         install_dir = resolved.parent
 
-    return ClaudeInstall(binary=resolved, install_dir=install_dir)
+    return ClaudeInstall(binary=binary, install_dir=install_dir)
 
 
 # Map image name patterns to Containerfile suffixes.
