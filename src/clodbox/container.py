@@ -16,33 +16,40 @@ from clodbox.errors import ContainerError
 class ClaudeInstall:
     """Information about a Claude Code installation."""
 
-    binary: Path  # The claude binary or symlink (e.g., ~/.local/bin/claude)
-    install_dir: Path  # Directory containing version files (e.g., ~/.local/share/claude)
+    binary: Path  # Resolved path to the actual claude binary
+    install_dir: Path  # Root of the Claude installation (e.g., ~/.local/share/claude)
 
 
 def detect_claude_install() -> ClaudeInstall | None:
     """Detect Claude Code installation on the host.
 
-    Returns ClaudeInstall with paths, or None if not found.
+    Resolves the ``claude`` symlink to find the real binary, then walks up
+    the directory tree to locate the ``claude/`` installation root.  This
+    is resilient to internal layout changes (e.g. a ``versions/`` sub-
+    directory being added) — we always mount the whole ``claude/`` tree.
     """
-    # Find claude in PATH
     claude_path = shutil.which("claude")
     if not claude_path:
         return None
 
     binary = Path(claude_path)
 
-    # Resolve symlink to find the actual binary
     try:
         resolved = binary.resolve()
     except OSError:
         return None
 
-    # The install directory is the parent of the resolved binary
-    # e.g., ~/.local/share/claude/2.1.34 -> ~/.local/share/claude
+    # Walk up from the resolved binary to find the 'claude' directory.
     install_dir = resolved.parent
+    while install_dir.name != "claude" and install_dir != install_dir.parent:
+        install_dir = install_dir.parent
 
-    return ClaudeInstall(binary=binary, install_dir=install_dir)
+    # Sanity check: if we hit the filesystem root without finding 'claude',
+    # fall back to the immediate parent of the binary.
+    if install_dir.name != "claude":
+        install_dir = resolved.parent
+
+    return ClaudeInstall(binary=resolved, install_dir=install_dir)
 
 
 # Map image name patterns to Containerfile suffixes.
