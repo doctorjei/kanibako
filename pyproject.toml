@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clodbox"
-version = "0.2.1"
+version = "0.2.2"
 description = "Run Claude Code in rootless containers with per-project isolation"
 requires-python = ">=3.11"
 dependencies = ["argcomplete>=3.0"]
