@@ -1,4 +1,4 @@
-"""Tests for clodbox.git."""
+"""Tests for kanibako.git."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from clodbox.errors import GitError
-from clodbox.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
+from kanibako.errors import GitError
+from kanibako.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
 
 
 class TestIsGitRepo:
@@ -25,14 +25,14 @@ class TestCheckUncommitted:
     def test_raises_on_dirty(self, tmp_path):
         result = MagicMock()
         result.returncode = 1
-        with patch("clodbox.git.subprocess.run", return_value=result):
+        with patch("kanibako.git.subprocess.run", return_value=result):
             with pytest.raises(GitError, match="Uncommitted"):
                 check_uncommitted(tmp_path)
 
     def test_passes_on_clean(self, tmp_path):
         result = MagicMock()
         result.returncode = 0
-        with patch("clodbox.git.subprocess.run", return_value=result):
+        with patch("kanibako.git.subprocess.run", return_value=result):
             check_uncommitted(tmp_path)  # Should not raise
 
 
@@ -43,7 +43,7 @@ class TestCheckUnpushed:
             MagicMock(returncode=0, stdout="origin/main\n"),  # upstream
             MagicMock(returncode=0, stdout="3\n"),       # count
         ]
-        with patch("clodbox.git.subprocess.run", side_effect=results):
+        with patch("kanibako.git.subprocess.run", side_effect=results):
             with pytest.raises(GitError, match="3 unpushed"):
                 check_unpushed(tmp_path)
 
@@ -52,7 +52,7 @@ class TestCheckUnpushed:
             MagicMock(returncode=0, stdout="main\n"),
             MagicMock(returncode=1, stdout="", stderr=""),  # no upstream
         ]
-        with patch("clodbox.git.subprocess.run", side_effect=results):
+        with patch("kanibako.git.subprocess.run", side_effect=results):
             check_unpushed(tmp_path)  # Should not raise
 
 
@@ -63,7 +63,7 @@ class TestGetMetadata:
             MagicMock(returncode=0, stdout="abc123\n"),
             MagicMock(returncode=0, stdout="origin\tgit@github.com:x/y.git (fetch)\n"),
         ]
-        with patch("clodbox.git.subprocess.run", side_effect=results):
+        with patch("kanibako.git.subprocess.run", side_effect=results):
             meta = get_metadata(tmp_path)
         assert meta is not None
         assert meta.branch == "main"
@@ -72,5 +72,5 @@ class TestGetMetadata:
 
     def test_returns_none_on_failure(self, tmp_path):
         result = MagicMock(returncode=1, stdout="")
-        with patch("clodbox.git.subprocess.run", return_value=result):
+        with patch("kanibako.git.subprocess.run", return_value=result):
             assert get_metadata(tmp_path) is None

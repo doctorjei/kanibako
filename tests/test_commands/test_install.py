@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.install (setup subcommand)."""
+"""Tests for kanibako.commands.install (setup subcommand)."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from clodbox.config import load_config
+from kanibako.config import load_config
 
 
 class TestInstall:
     def test_writes_config(self, tmp_home):
-        from clodbox.commands.install import run
+        from kanibako.commands.install import run
 
-        config_file = tmp_home / "config" / "clodbox" / "clodbox.toml"
+        config_file = tmp_home / "config" / "kanibako" / "kanibako.toml"
         assert not config_file.exists()
 
         # Mock host credential files and container runtime
@@ -31,8 +31,8 @@ class TestInstall:
         )
 
         with (
-            patch("clodbox.commands.install.ContainerRuntime", side_effect=Exception("no runtime")),
-            patch("clodbox.commands.install._install_cron"),
+            patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no runtime")),
+            patch("kanibako.commands.install._install_cron"),
         ):
             args = argparse.Namespace()
             rc = run(args)
@@ -40,4 +40,4 @@ class TestInstall:
         assert rc == 0
         assert config_file.exists()
         cfg = load_config(config_file)
-        assert cfg.container_image == "ghcr.io/doctorjei/clodbox-base:latest"
+        assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"

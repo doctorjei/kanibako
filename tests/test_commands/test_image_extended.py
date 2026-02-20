@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.commands.image: API responses, edge cases."""
+"""Extended tests for kanibako.commands.image: API responses, edge cases."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.commands.image import _extract_ghcr_owner, _list_remote_packages
+from kanibako.commands.image import _extract_ghcr_owner, _list_remote_packages
 
 
 # ---------------------------------------------------------------------------
@@ -17,8 +17,8 @@ from clodbox.commands.image import _extract_ghcr_owner, _list_remote_packages
 class TestListRemotePackages:
     def test_successful_api_response(self, capsys):
         response_data = [
-            {"name": "clodbox-base"},
-            {"name": "clodbox-jvm"},
+            {"name": "kanibako-base"},
+            {"name": "kanibako-jvm"},
             {"name": "unrelated-pkg"},
         ]
         mock_resp = MagicMock()
@@ -26,18 +26,18 @@ class TestListRemotePackages:
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
 
-        with patch("clodbox.commands.image.urllib.request.urlopen", return_value=mock_resp):
+        with patch("kanibako.commands.image.urllib.request.urlopen", return_value=mock_resp):
             _list_remote_packages("myowner")
 
         out = capsys.readouterr().out
-        assert "ghcr.io/myowner/clodbox-base" in out
-        assert "ghcr.io/myowner/clodbox-jvm" in out
+        assert "ghcr.io/myowner/kanibako-base" in out
+        assert "ghcr.io/myowner/kanibako-jvm" in out
         assert "unrelated-pkg" not in out
 
     def test_api_timeout(self, capsys):
         import urllib.error
         with patch(
-            "clodbox.commands.image.urllib.request.urlopen",
+            "kanibako.commands.image.urllib.request.urlopen",
             side_effect=urllib.error.URLError("timeout"),
         ):
             _list_remote_packages("owner")
@@ -51,11 +51,11 @@ class TestListRemotePackages:
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
 
-        with patch("clodbox.commands.image.urllib.request.urlopen", return_value=mock_resp):
+        with patch("kanibako.commands.image.urllib.request.urlopen", return_value=mock_resp):
             _list_remote_packages("owner")
 
         out = capsys.readouterr().out
-        assert "no clodbox packages" in out.lower()
+        assert "no kanibako packages" in out.lower()
 
     def test_invalid_json_response(self, capsys):
         mock_resp = MagicMock()
@@ -63,7 +63,7 @@ class TestListRemotePackages:
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
 
-        with patch("clodbox.commands.image.urllib.request.urlopen", return_value=mock_resp):
+        with patch("kanibako.commands.image.urllib.request.urlopen", return_value=mock_resp):
             _list_remote_packages("owner")
 
         out = capsys.readouterr().out

@@ -7,7 +7,7 @@ import os
 import shutil
 import sys
 
-from clodbox.errors import UserCancelled
+from kanibako.errors import UserCancelled
 
 
 def cp_if_newer(src: str | os.PathLike, dst: str | os.PathLike) -> bool:

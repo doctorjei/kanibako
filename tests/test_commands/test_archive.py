@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.archive."""
+"""Tests for kanibako.commands.archive."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import load_config, write_global_config
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config, write_global_config
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestArchive:
     def test_creates_archive(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -43,7 +43,7 @@ class TestArchive:
             assert any("test_data.txt" in n for n in names)
 
     def test_no_session_data(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         # Create a project dir but don't initialize it
         new_project = tmp_home / "empty_project"

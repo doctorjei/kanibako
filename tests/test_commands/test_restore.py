@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.restore."""
+"""Tests for kanibako.commands.restore."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestRestore:
     def test_round_trip(self, config_file, tmp_home, credentials_dir):
         """Archive then restore; verify data preserved."""
-        from clodbox.commands.archive import run as archive_run
-        from clodbox.commands.restore import run as restore_run
+        from kanibako.commands.archive import run as archive_run
+        from kanibako.commands.restore import run as restore_run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -53,10 +53,10 @@ class TestRestore:
         assert proj.settings_path.is_dir()
         assert (proj.settings_path / "mydata.txt").read_text() == "important"
         # Info file should be cleaned up
-        assert not (proj.settings_path / "clodbox-archive-info.txt").exists()
+        assert not (proj.settings_path / "kanibako-archive-info.txt").exists()
 
     def test_missing_archive(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         args = argparse.Namespace(
             path=str(tmp_home / "project"),

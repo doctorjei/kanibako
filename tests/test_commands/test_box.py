@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.box (list, migrate, and duplicate subcommands)."""
+"""Tests for kanibako.commands.box (list, migrate, and duplicate subcommands)."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ import argparse
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.paths import load_std_paths, resolve_project
-from clodbox.utils import project_hash
+from kanibako.config import load_config
+from kanibako.paths import load_std_paths, resolve_project
+from kanibako.utils import project_hash
 
 
 class TestBoxList:
     def test_list_empty(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.box import run_list
+        from kanibako.commands.box import run_list
 
         args = argparse.Namespace()
         rc = run_list(args)
@@ -21,7 +21,7 @@ class TestBoxList:
         assert "No known projects" in capsys.readouterr().out
 
     def test_list_shows_projects(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.box import run_list
+        from kanibako.commands.box import run_list
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -36,7 +36,7 @@ class TestBoxList:
         assert str(tmp_home / "project") in out
 
     def test_list_shows_missing_status(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.box import run_list
+        from kanibako.commands.box import run_list
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -56,7 +56,7 @@ class TestBoxList:
 
 class TestBoxMigrate:
     def test_migrate_success(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -96,7 +96,7 @@ class TestBoxMigrate:
         assert (new_settings / "project-path.txt").read_text().strip() == str(new_dir.resolve())
 
     def test_migrate_same_path_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         project_dir = tmp_home / "project"
 
@@ -109,7 +109,7 @@ class TestBoxMigrate:
         assert rc == 1
 
     def test_migrate_no_old_data_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         old_dir = tmp_home / "nonexistent_old"
         new_dir = tmp_home / "project"  # exists (created by tmp_home)
@@ -123,7 +123,7 @@ class TestBoxMigrate:
         assert rc == 1
 
     def test_migrate_new_path_not_dir_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -141,7 +141,7 @@ class TestBoxMigrate:
         assert rc == 1
 
     def test_migrate_new_data_exists_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -164,7 +164,7 @@ class TestBoxMigrate:
         assert rc == 1
 
     def test_migrate_defaults_to_cwd(self, config_file, tmp_home, credentials_dir, monkeypatch):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -191,7 +191,7 @@ class TestBoxMigrate:
         assert new_settings.is_dir()
 
     def test_migrate_warns_on_lock_file(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_migrate
+        from kanibako.commands.box import run_migrate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -201,7 +201,7 @@ class TestBoxMigrate:
         proj = resolve_project(std, config, project_dir=str(old_dir), initialize=True)
 
         # Create a lock file.
-        (proj.settings_path / ".clodbox.lock").touch()
+        (proj.settings_path / ".kanibako.lock").touch()
 
         new_dir = tmp_home / "new_locked_proj"
         new_dir.mkdir()
@@ -224,7 +224,7 @@ class TestBoxDuplicate:
         )
 
     def test_duplicate_success(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -256,7 +256,7 @@ class TestBoxDuplicate:
         assert proj.settings_path.is_dir()
 
     def test_duplicate_bare(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -279,7 +279,7 @@ class TestBoxDuplicate:
         assert (projects_base / new_hash).is_dir()
 
     def test_duplicate_source_not_dir_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         rc = run_duplicate(self._make_args(
             tmp_home / "nonexistent", tmp_home / "dst", force=True,
@@ -287,7 +287,7 @@ class TestBoxDuplicate:
         assert rc == 1
 
     def test_duplicate_source_no_metadata_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         src_dir = tmp_home / "no_meta"
         src_dir.mkdir()
@@ -296,7 +296,7 @@ class TestBoxDuplicate:
         assert rc == 1
 
     def test_duplicate_dst_exists_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -313,7 +313,7 @@ class TestBoxDuplicate:
         assert rc == 1
 
     def test_duplicate_dst_metadata_exists_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -331,7 +331,7 @@ class TestBoxDuplicate:
         assert rc == 1
 
     def test_duplicate_lock_file_aborts_without_force(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -339,7 +339,7 @@ class TestBoxDuplicate:
         src_dir = tmp_home / "locked_src"
         src_dir.mkdir()
         proj = resolve_project(std, config, project_dir=str(src_dir), initialize=True)
-        (proj.settings_path / ".clodbox.lock").touch()
+        (proj.settings_path / ".kanibako.lock").touch()
 
         dst_dir = tmp_home / "locked_dst"
 
@@ -347,7 +347,7 @@ class TestBoxDuplicate:
         assert rc == 2
 
     def test_duplicate_lock_file_skipped_with_force(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -355,7 +355,7 @@ class TestBoxDuplicate:
         src_dir = tmp_home / "lockforce_src"
         src_dir.mkdir()
         proj = resolve_project(std, config, project_dir=str(src_dir), initialize=True)
-        (proj.settings_path / ".clodbox.lock").touch()
+        (proj.settings_path / ".kanibako.lock").touch()
 
         dst_dir = tmp_home / "lockforce_dst"
 
@@ -363,7 +363,7 @@ class TestBoxDuplicate:
         assert rc == 0
 
     def test_duplicate_excludes_lock_file(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -371,7 +371,7 @@ class TestBoxDuplicate:
         src_dir = tmp_home / "excl_src"
         src_dir.mkdir()
         proj = resolve_project(std, config, project_dir=str(src_dir), initialize=True)
-        (proj.settings_path / ".clodbox.lock").touch()
+        (proj.settings_path / ".kanibako.lock").touch()
 
         dst_dir = tmp_home / "excl_dst"
 
@@ -381,10 +381,10 @@ class TestBoxDuplicate:
         new_hash = project_hash(str(dst_dir.resolve()))
         projects_base = std.data_path / config.paths_projects_path
         new_settings = projects_base / new_hash
-        assert not (new_settings / ".clodbox.lock").exists()
+        assert not (new_settings / ".kanibako.lock").exists()
 
     def test_duplicate_force_overwrites_metadata(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -411,7 +411,7 @@ class TestBoxDuplicate:
         assert not (new_settings / "stale.txt").exists()
 
     def test_duplicate_force_overwrites_workspace(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.box import run_duplicate
+        from kanibako.commands.box import run_duplicate
 
         config = load_config(config_file)
         std = load_std_paths(config)

@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.clean (purge subcommand)."""
+"""Tests for kanibako.commands.clean (purge subcommand)."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from unittest.mock import patch
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestClean:
     def test_force_removes_data(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.clean import run
+        from kanibako.commands.clean import run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -32,7 +32,7 @@ class TestClean:
         assert not proj.settings_path.exists()
 
     def test_no_session_data(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.clean import run
+        from kanibako.commands.clean import run
 
         new_project = tmp_home / "empty_project"
         new_project.mkdir()
@@ -46,7 +46,7 @@ class TestClean:
         assert rc == 0
 
     def test_no_path_no_all_returns_error(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.clean import run
+        from kanibako.commands.clean import run
 
         args = argparse.Namespace(
             path=None,
@@ -57,7 +57,7 @@ class TestClean:
         assert rc == 1
 
     def test_all_force_removes_all(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.clean import run
+        from kanibako.commands.clean import run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -85,7 +85,7 @@ class TestClean:
         assert not proj_b.settings_path.exists()
 
     def test_all_empty_returns_zero(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.clean import run
+        from kanibako.commands.clean import run
 
         args = argparse.Namespace(
             path=None,

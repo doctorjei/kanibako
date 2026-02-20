@@ -1,4 +1,4 @@
-"""Tests for clodbox.containerfiles: bundled resolution, user overrides, listing."""
+"""Tests for kanibako.containerfiles: bundled resolution, user overrides, listing."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.containerfiles import get_containerfile, list_containerfile_suffixes
+from kanibako.containerfiles import get_containerfile, list_containerfile_suffixes
 
 
 class TestGetContainerfile:

@@ -1,8 +1,8 @@
-"""Clodbox error hierarchy."""
+"""Kanibako error hierarchy."""
 
 
 class ClodboxError(Exception):
-    """Base exception for all clodbox errors."""
+    """Base exception for all kanibako errors."""
 
 
 class ConfigError(ClodboxError):

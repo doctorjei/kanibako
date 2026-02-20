@@ -1,4 +1,4 @@
-"""clodbox start / shell / resume: container launch with credential flow."""
+"""kanibako start / shell / resume: container launch with credential flow."""
 
 from __future__ import annotations
 
@@ -7,16 +7,16 @@ import fcntl
 import sys
 from pathlib import Path
 
-from clodbox.config import load_config, load_merged_config
-from clodbox.container import ContainerRuntime, detect_claude_install
-from clodbox.credentials import (
+from kanibako.config import load_config, load_merged_config
+from kanibako.container import ContainerRuntime, detect_claude_install
+from kanibako.credentials import (
     refresh_central_to_project,
     refresh_host_to_central,
     writeback_project_to_central_and_host,
 )
-from clodbox.errors import ConfigError, ContainerError
-from clodbox.paths import _xdg, load_std_paths, resolve_project
-from clodbox.utils import short_hash
+from kanibako.errors import ConfigError, ContainerError
+from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.utils import short_hash
 
 
 def add_start_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -140,37 +140,37 @@ def _run_container(
     resume_mode: bool,
     extra_args: list[str],
 ) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
 
     try:
         std = load_std_paths(config)
     except ConfigError:
-        print("clodbox hasn't been set up yet. Run setup now? [y/N] ", end="", flush=True)
+        print("kanibako hasn't been set up yet. Run setup now? [y/N] ", end="", flush=True)
         try:
             answer = input().strip().lower()
         except (EOFError, KeyboardInterrupt):
             answer = ""
         if answer in ("y", "yes"):
             import argparse as _argparse
-            from clodbox.commands.install import run as setup_run
+            from kanibako.commands.install import run as setup_run
             setup_run(_argparse.Namespace())
             # Retry after setup
             std = load_std_paths(config)
         else:
-            print("Run 'clodbox setup' when you're ready.")
+            print("Run 'kanibako setup' when you're ready.")
             return 1
 
     proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
 
     # Hint about orphaned project data when initializing a new project
     if proj.is_new:
-        from clodbox.paths import iter_projects
+        from kanibako.paths import iter_projects
         for _settings, _ppath in iter_projects(std, config):
             if _ppath is not None and not _ppath.is_dir():
                 print(
                     "hint: orphaned project data detected — "
-                    "run 'clodbox box list' or use 'clodbox box migrate' "
+                    "run 'kanibako box list' or use 'kanibako box migrate' "
                     "if you moved a project.",
                     file=sys.stderr,
                 )
@@ -188,7 +188,7 @@ def _run_container(
 
     # Persist image override for new projects so it becomes the default
     if proj.is_new and image_override:
-        from clodbox.config import write_project_config
+        from kanibako.config import write_project_config
         write_project_config(project_toml, image_override)
 
     # Detect container runtime and ensure image is available
@@ -205,7 +205,7 @@ def _run_container(
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    from clodbox.freshness import check_image_freshness
+    from kanibako.freshness import check_image_freshness
     check_image_freshness(runtime, image, std.cache_path)
 
     # Detect host Claude installation for bind-mounting
@@ -217,23 +217,23 @@ def _run_container(
         )
 
     # Deterministic container name for stop/cleanup
-    container_name = f"clodbox-{short_hash(proj.project_hash)}"
+    container_name = f"kanibako-{short_hash(proj.project_hash)}"
 
     # Concurrency lock (known issue #3)
-    lock_file = proj.settings_path / ".clodbox.lock"
+    lock_file = proj.settings_path / ".kanibako.lock"
     lock_file.parent.mkdir(parents=True, exist_ok=True)
     lock_fd = open(lock_file, "w")
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         print(
-            "Error: Another clodbox instance is running for this project.",
+            "Error: Another kanibako instance is running for this project.",
             file=sys.stderr,
         )
         lock_fd.close()
         return 1
 
-    # Record container name so `clodbox stop` can find it
+    # Record container name so `kanibako stop` can find it
     lock_fd.write(container_name + "\n")
     lock_fd.flush()
 

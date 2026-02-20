@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.commands.restore: hash mismatch, git state, corrupt archives."""
+"""Extended tests for kanibako.commands.restore: hash mismatch, git state, corrupt archives."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from unittest.mock import patch
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.errors import UserCancelled
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config
+from kanibako.errors import UserCancelled
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestRestoreExtended:
     def _create_archive(self, config_file, tmp_home, credentials_dir, archive_name="test.txz"):
         """Helper: create a valid archive from project."""
-        from clodbox.commands.archive import run as archive_run
+        from kanibako.commands.archive import run as archive_run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -36,7 +36,7 @@ class TestRestoreExtended:
         return archive_path, project_dir, proj
 
     def test_hash_mismatch_prompts(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         archive_path, _, _ = self._create_archive(config_file, tmp_home, credentials_dir)
 
@@ -44,7 +44,7 @@ class TestRestoreExtended:
         other = tmp_home / "other_project"
         other.mkdir()
 
-        with patch("clodbox.commands.restore.confirm_prompt") as m_prompt:
+        with patch("kanibako.commands.restore.confirm_prompt") as m_prompt:
             args = argparse.Namespace(
                 path=str(other), file=archive_path, all_archives=False, force=False,
             )
@@ -53,14 +53,14 @@ class TestRestoreExtended:
             m_prompt.assert_called()
 
     def test_user_cancels_returns_2(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         archive_path, _, _ = self._create_archive(config_file, tmp_home, credentials_dir)
 
         other = tmp_home / "other_project"
         other.mkdir()
 
-        with patch("clodbox.commands.restore.confirm_prompt", side_effect=UserCancelled("no")):
+        with patch("kanibako.commands.restore.confirm_prompt", side_effect=UserCancelled("no")):
             args = argparse.Namespace(
                 path=str(other), file=archive_path, all_archives=False, force=False,
             )
@@ -68,14 +68,14 @@ class TestRestoreExtended:
             assert rc == 2
 
     def test_force_bypasses_mismatch(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         archive_path, _, _ = self._create_archive(config_file, tmp_home, credentials_dir)
 
         other = tmp_home / "other_project"
         other.mkdir()
 
-        with patch("clodbox.commands.restore.confirm_prompt") as m_prompt:
+        with patch("kanibako.commands.restore.confirm_prompt") as m_prompt:
             args = argparse.Namespace(
                 path=str(other), file=archive_path, all_archives=False, force=True,
             )
@@ -84,7 +84,7 @@ class TestRestoreExtended:
             m_prompt.assert_not_called()
 
     def test_git_commit_mismatch(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         archive_path, project_dir, _ = self._create_archive(
             config_file, tmp_home, credentials_dir, "git.txz"
@@ -92,7 +92,7 @@ class TestRestoreExtended:
 
         # The archive has git metadata. Current HEAD may differ.
         # We patch _validate_git_state to simulate a mismatch prompt
-        with patch("clodbox.commands.restore.confirm_prompt") as m_prompt:
+        with patch("kanibako.commands.restore.confirm_prompt") as m_prompt:
             args = argparse.Namespace(
                 path=project_dir, file=archive_path, all_archives=False, force=False,
             )
@@ -100,7 +100,7 @@ class TestRestoreExtended:
             run(args)
 
     def test_force_bypasses_git_mismatch(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         archive_path, project_dir, _ = self._create_archive(
             config_file, tmp_home, credentials_dir, "git2.txz"
@@ -114,8 +114,8 @@ class TestRestoreExtended:
 
     def test_archive_from_git_workspace_not_git(self, config_file, tmp_home, credentials_dir, fake_git_repo):
         """Archive from a git repo, restore to a non-git workspace."""
-        from clodbox.commands.archive import run as archive_run
-        from clodbox.commands.restore import run as restore_run
+        from kanibako.commands.archive import run as archive_run
+        from kanibako.commands.restore import run as restore_run
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -138,7 +138,7 @@ class TestRestoreExtended:
         assert rc == 0
 
     def test_corrupt_archive_returns_1(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         corrupt = tmp_home / "corrupt.txz"
         corrupt.write_text("this is not a tar file")
@@ -150,7 +150,7 @@ class TestRestoreExtended:
         assert rc == 1
 
     def test_empty_archive_returns_1(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         empty_archive = tmp_home / "empty.txz"
         import lzma
@@ -166,7 +166,7 @@ class TestRestoreExtended:
         assert rc == 1
 
     def test_missing_info_file_returns_1(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.restore import run
+        from kanibako.commands.restore import run
 
         # Create a valid tar.xz with a directory but no info file
         archive_path = tmp_home / "no-info.txz"

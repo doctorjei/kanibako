@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.paths: recovery paths, edge cases."""
+"""Extended tests for kanibako.paths: recovery paths, edge cases."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import ClodboxConfig, load_config, write_global_config
-from clodbox.errors import ConfigError, ProjectError
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import ClodboxConfig, load_config, write_global_config
+from kanibako.errors import ConfigError, ProjectError
+from kanibako.paths import load_std_paths, resolve_project
 
 
 # ---------------------------------------------------------------------------
@@ -107,8 +107,8 @@ class TestPathEdgeCases:
 
     def test_legacy_rc_detection(self, tmp_home):
         """load_std_paths raises ConfigError mentioning legacy .rc if present."""
-        config_dir = tmp_home / "config" / "clodbox"
+        config_dir = tmp_home / "config" / "kanibako"
         config_dir.mkdir(parents=True)
-        (config_dir / "clodbox.rc").write_text("CLODBOX_DOT_PATH=x\n")
+        (config_dir / "kanibako.rc").write_text("CLODBOX_DOT_PATH=x\n")
         with pytest.raises(ConfigError, match="Legacy config"):
             load_std_paths()

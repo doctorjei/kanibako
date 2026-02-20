@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-from clodbox.utils import cp_if_newer, stderr
+from kanibako.utils import cp_if_newer, stderr
 
 
 def refresh_host_to_central(central_creds: Path) -> bool:

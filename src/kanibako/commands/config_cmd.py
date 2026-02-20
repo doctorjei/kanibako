@@ -1,4 +1,4 @@
-"""clodbox config: get/set per-project configuration."""
+"""kanibako config: get/set per-project configuration."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ import argparse
 import sys
 from dataclasses import fields
 
-from clodbox.config import (
+from kanibako.config import (
     ClodboxConfig,
     load_config,
     load_merged_config,
     write_project_config,
 )
-from clodbox.paths import _xdg, load_std_paths, resolve_project
-from clodbox.utils import confirm_prompt
+from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.utils import confirm_prompt
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -38,7 +38,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)

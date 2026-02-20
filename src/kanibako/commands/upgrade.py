@@ -1,4 +1,4 @@
-"""clodbox upgrade: update clodbox itself from git."""
+"""kanibako upgrade: update kanibako itself from git."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from pathlib import Path
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "upgrade",
-        help="Upgrade clodbox to the latest version",
-        description="Upgrade clodbox by pulling the latest changes from git.",
+        help="Upgrade kanibako to the latest version",
+        description="Upgrade kanibako by pulling the latest changes from git.",
     )
     p.add_argument(
         "--check", action="store_true",
@@ -22,7 +22,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _get_repo_dir() -> Path | None:
-    """Find the clodbox git repository directory."""
+    """Find the kanibako git repository directory."""
     # Start from this file's location and walk up to find .git
     current = Path(__file__).resolve().parent
     for _ in range(5):  # Don't walk up forever
@@ -91,8 +91,8 @@ def _get_commit_count_behind(repo: Path) -> int | None:
 def run(args: argparse.Namespace) -> int:
     repo = _get_repo_dir()
     if repo is None:
-        print("Error: Could not find clodbox git repository.", file=sys.stderr)
-        print("clodbox upgrade only works for git-based installations.", file=sys.stderr)
+        print("Error: Could not find kanibako git repository.", file=sys.stderr)
+        print("kanibako upgrade only works for git-based installations.", file=sys.stderr)
         return 1
 
     # Check for uncommitted changes

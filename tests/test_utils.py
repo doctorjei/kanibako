@@ -1,4 +1,4 @@
-"""Tests for clodbox.utils: cp_if_newer, confirm_prompt, project_hash, short_hash."""
+"""Tests for kanibako.utils: cp_if_newer, confirm_prompt, project_hash, short_hash."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-from clodbox.errors import UserCancelled
-from clodbox.utils import confirm_prompt, cp_if_newer, project_hash, short_hash
+from kanibako.errors import UserCancelled
+from kanibako.utils import confirm_prompt, cp_if_newer, project_hash, short_hash
 
 
 # ---------------------------------------------------------------------------

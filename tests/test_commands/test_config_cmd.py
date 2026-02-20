@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.config_cmd."""
+"""Tests for kanibako.commands.config_cmd."""
 
 from __future__ import annotations
 
@@ -9,16 +9,16 @@ import pytest
 
 from unittest.mock import patch
 
-from clodbox.config import ClodboxConfig, load_config, write_global_config, write_project_config
+from kanibako.config import ClodboxConfig, load_config, write_global_config, write_project_config
 
 
 class TestConfigGet:
     def test_get_image(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         # Create project settings path so resolve_project finds it
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -29,15 +29,15 @@ class TestConfigGet:
         rc = run(args)
         assert rc == 0
         captured = capsys.readouterr()
-        assert "ghcr.io/doctorjei/clodbox-base:latest" in captured.out
+        assert "ghcr.io/doctorjei/kanibako-base:latest" in captured.out
 
 
 class TestConfigSet:
     def test_set_image(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -58,10 +58,10 @@ class TestConfigSet:
 
 class TestConfigUnknownKey:
     def test_unknown_key(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -76,10 +76,10 @@ class TestConfigUnknownKey:
 
 class TestConfigShow:
     def test_show_all(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -94,10 +94,10 @@ class TestConfigShow:
         assert "paths_dot_path" in captured.out
 
     def test_show_marks_project_overrides(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -118,10 +118,10 @@ class TestConfigShow:
 
 class TestConfigClear:
     def test_clear_removes_project_toml(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -131,7 +131,7 @@ class TestConfigClear:
         write_project_config(project_toml, "custom:v1")
         assert project_toml.exists()
 
-        with patch("clodbox.commands.config_cmd.confirm_prompt"):
+        with patch("kanibako.commands.config_cmd.confirm_prompt"):
             args = argparse.Namespace(
                 key=None, value=None, show=False, clear=True, project=project_dir
             )
@@ -142,10 +142,10 @@ class TestConfigClear:
         assert "Cleared" in captured.out
 
     def test_clear_no_project_config(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         resolve_project(std, config, project_dir=project_dir, initialize=True)
@@ -161,16 +161,16 @@ class TestConfigClear:
 
 class TestConfigNoArgs:
     def test_no_key_or_flag_prints_help(self, config_file, tmp_home, credentials_dir, capsys):
-        from clodbox.cli import build_parser
+        from kanibako.cli import build_parser
 
         # Parse through the real parser so _config_parser is set
         parser = build_parser()
         args = parser.parse_args(["config"])
 
-        from clodbox.commands.config_cmd import run
+        from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
-        from clodbox.paths import load_std_paths, resolve_project
+        from kanibako.paths import load_std_paths, resolve_project
         std = load_std_paths(config)
         project_dir = str(tmp_home / "project")
         resolve_project(std, config, project_dir=project_dir, initialize=True)

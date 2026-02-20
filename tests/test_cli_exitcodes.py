@@ -1,4 +1,4 @@
-"""Tests for clodbox.cli main() exit codes."""
+"""Tests for kanibako.cli main() exit codes."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from clodbox.errors import ClodboxError, UserCancelled
+from kanibako.errors import ClodboxError, UserCancelled
 
 
 def _fake_xdg(*args, **kwargs):
@@ -20,11 +20,11 @@ def _fake_xdg(*args, **kwargs):
 
 class TestMainExitCodes:
     def test_user_cancelled_exits_2(self):
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_parser,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_parser,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -34,12 +34,12 @@ class TestMainExitCodes:
             main(["start"])
         assert exc_info.value.code == 2
 
-    def test_clodbox_error_exits_1(self):
-        from clodbox.cli import main
+    def test_kanibako_error_exits_1(self):
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_parser,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_parser,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -50,11 +50,11 @@ class TestMainExitCodes:
         assert exc_info.value.code == 1
 
     def test_keyboard_interrupt_exits_130(self):
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_parser,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_parser,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -65,11 +65,11 @@ class TestMainExitCodes:
         assert exc_info.value.code == 130
 
     def test_success_exits_0(self):
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_parser,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_parser,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -80,11 +80,11 @@ class TestMainExitCodes:
         assert exc_info.value.code == 0
 
     def test_nonzero_propagation(self):
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_parser,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_parser,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -96,11 +96,11 @@ class TestMainExitCodes:
 
     def test_no_command_defaults_to_start(self):
         """When no command given, main() prepends 'start' and parses once."""
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_bp,
-            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.cli.build_parser") as mock_bp,
+            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             parser = MagicMock()
@@ -119,7 +119,7 @@ class TestMainExitCodes:
 class TestConfigPreCheck:
     def test_missing_config_exits_1(self, tmp_path, monkeypatch):
         """Running a non-setup command without config file exits 1."""
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "no_config"))
         with pytest.raises(SystemExit) as exc_info:
@@ -128,10 +128,10 @@ class TestConfigPreCheck:
 
     def test_setup_exempt_from_config_check(self):
         """'setup' command does not fail on missing config."""
-        from clodbox.cli import main
+        from kanibako.cli import main
 
         with (
-            patch("clodbox.cli.build_parser") as mock_bp,
+            patch("kanibako.cli.build_parser") as mock_bp,
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()

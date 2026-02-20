@@ -1,4 +1,4 @@
-"""clodbox setup: first-time environment setup."""
+"""kanibako setup: first-time environment setup."""
 
 from __future__ import annotations
 
@@ -9,24 +9,24 @@ import subprocess
 import sys
 from pathlib import Path
 
-from clodbox.config import (
+from kanibako.config import (
     ClodboxConfig,
     load_config,
     migrate_rc,
     write_global_config,
 )
-from clodbox.container import ContainerRuntime
-from clodbox.containerfiles import get_containerfile
-from clodbox.credentials import filter_settings
-from clodbox.errors import ContainerError
-from clodbox.paths import _xdg
+from kanibako.container import ContainerRuntime
+from kanibako.containerfiles import get_containerfile
+from kanibako.credentials import filter_settings
+from kanibako.errors import ContainerError
+from kanibako.paths import _xdg
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "setup",
         help="First-time setup (config, creds, containers, cron)",
-        description="Set up clodbox: write config, copy credentials, "
+        description="Set up kanibako: write config, copy credentials, "
         "install Containerfiles, pull image, and set up cron job.",
     )
     p.set_defaults(func=run)
@@ -34,20 +34,20 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def run(args: argparse.Namespace) -> int:
     config_home = _xdg("XDG_CONFIG_HOME", ".config")
-    config_file = config_home / "clodbox" / "clodbox.toml"
+    config_file = config_home / "kanibako" / "kanibako.toml"
 
     # ------------------------------------------------------------------
     # 1. Write config (or migrate from .rc)
     # ------------------------------------------------------------------
-    legacy_rc = config_file.with_name("clodbox.rc")
+    legacy_rc = config_file.with_name("kanibako.rc")
     if config_file.exists():
         print("Configuration file already exists, loading.")
         config = load_config(config_file)
     elif legacy_rc.exists():
-        print("Migrating legacy clodbox.rc to clodbox.toml...")
+        print("Migrating legacy kanibako.rc to kanibako.toml...")
         config = migrate_rc(legacy_rc, config_file)
     else:
-        print("Writing general configuration file (clodbox.toml)... ", end="", flush=True)
+        print("Writing general configuration file (kanibako.toml)... ", end="", flush=True)
         config = ClodboxConfig()
         write_global_config(config_file, config)
         print("done!")
@@ -61,7 +61,7 @@ def run(args: argparse.Namespace) -> int:
     dot_template_path = credentials_path / config.paths_dot_path
     cfg_template_file = credentials_path / config.paths_cfg_file
 
-    print("Copying authentication credentials to clodbox store... ", end="", flush=True)
+    print("Copying authentication credentials to kanibako store... ", end="", flush=True)
     dot_template_path.mkdir(parents=True, exist_ok=True)
 
     host_settings = Path.home() / ".claude.json"
@@ -121,12 +121,12 @@ def run(args: argparse.Namespace) -> int:
 
 def _install_cron() -> None:
     """Install credential refresh cron job (every 6 hours)."""
-    # Find clodbox executable
-    clodbox_bin = shutil.which("clodbox")
-    if not clodbox_bin:
-        clodbox_bin = str(Path.home() / ".local" / "bin" / "clodbox")
+    # Find kanibako executable
+    kanibako_bin = shutil.which("kanibako")
+    if not kanibako_bin:
+        kanibako_bin = str(Path.home() / ".local" / "bin" / "kanibako")
 
-    cron_cmd = f"{clodbox_bin} refresh-creds"
+    cron_cmd = f"{kanibako_bin} refresh-creds"
     cron_entry = f"0 */6 * * * {cron_cmd}"
 
     try:
@@ -138,7 +138,7 @@ def _install_cron() -> None:
         print("(crontab not available, skipping)", end=" ")
         return
 
-    # Remove existing clodbox cron entries, add new one
+    # Remove existing kanibako cron entries, add new one
     lines = [l for l in existing.splitlines() if cron_cmd not in l]
     lines.append(cron_entry)
     new_crontab = "\n".join(lines) + "\n"
@@ -152,14 +152,14 @@ def _install_cron() -> None:
 
 
 def _install_completion() -> None:
-    """Register bash/zsh completion for clodbox via argcomplete."""
+    """Register bash/zsh completion for kanibako via argcomplete."""
     completions_dir = _xdg("XDG_DATA_HOME", ".local/share") / "bash-completion" / "completions"
     completions_dir.mkdir(parents=True, exist_ok=True)
-    target = completions_dir / "clodbox"
+    target = completions_dir / "kanibako"
 
     try:
         result = subprocess.run(
-            ["register-python-argcomplete", "clodbox"],
+            ["register-python-argcomplete", "kanibako"],
             capture_output=True,
             text=True,
         )

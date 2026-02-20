@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.stop."""
+"""Tests for kanibako.commands.stop."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.commands.stop import run, _stop_one, _stop_all
+from kanibako.commands.stop import run, _stop_one, _stop_all
 
 
 @pytest.fixture
@@ -20,9 +20,9 @@ def mock_runtime():
 class TestStopOne:
     def test_running_container_stopped(self, mock_runtime, capsys):
         with (
-            patch("clodbox.commands.stop.load_config"),
-            patch("clodbox.commands.stop.load_std_paths"),
-            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.load_config"),
+            patch("kanibako.commands.stop.load_std_paths"),
+            patch("kanibako.commands.stop.resolve_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
@@ -37,15 +37,15 @@ class TestStopOne:
     def test_no_running_container(self, mock_runtime, capsys):
         mock_runtime.stop.return_value = False
         with (
-            patch("clodbox.commands.stop.load_config"),
-            patch("clodbox.commands.stop.load_std_paths"),
-            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.load_config"),
+            patch("kanibako.commands.stop.load_std_paths"),
+            patch("kanibako.commands.stop.resolve_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
             proj.settings_path = MagicMock()
             lock_path = MagicMock()
-            lock_path.__str__ = lambda self: "/fake/path/.clodbox.lock"
+            lock_path.__str__ = lambda self: "/fake/path/.kanibako.lock"
             proj.settings_path.__truediv__ = MagicMock(return_value=lock_path)
             m_resolve.return_value = proj
 
@@ -54,13 +54,13 @@ class TestStopOne:
             out = capsys.readouterr().out
             assert "No running container" in out
             assert "rm " in out
-            assert ".clodbox.lock" in out
+            assert ".kanibako.lock" in out
 
     def test_stop_with_project_dir(self, mock_runtime):
         with (
-            patch("clodbox.commands.stop.load_config"),
-            patch("clodbox.commands.stop.load_std_paths"),
-            patch("clodbox.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.load_config"),
+            patch("kanibako.commands.stop.load_std_paths"),
+            patch("kanibako.commands.stop.resolve_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
@@ -76,8 +76,8 @@ class TestStopOne:
 class TestStopAll:
     def test_stops_multiple_containers(self, mock_runtime, capsys):
         mock_runtime.list_running.return_value = [
-            ("clodbox-aabbccdd", "img:latest", "Up 5 minutes"),
-            ("clodbox-11223344", "img:latest", "Up 10 minutes"),
+            ("kanibako-aabbccdd", "img:latest", "Up 5 minutes"),
+            ("kanibako-11223344", "img:latest", "Up 10 minutes"),
         ]
         rc = _stop_all(mock_runtime)
         assert rc == 0
@@ -90,13 +90,13 @@ class TestStopAll:
         rc = _stop_all(mock_runtime)
         assert rc == 0
         out = capsys.readouterr().out
-        assert "No running clodbox containers" in out
+        assert "No running kanibako containers" in out
         mock_runtime.stop.assert_not_called()
 
     def test_partial_failure(self, mock_runtime, capsys):
         mock_runtime.list_running.return_value = [
-            ("clodbox-aabbccdd", "img:latest", "Up 5 minutes"),
-            ("clodbox-11223344", "img:latest", "Up 10 minutes"),
+            ("kanibako-aabbccdd", "img:latest", "Up 5 minutes"),
+            ("kanibako-11223344", "img:latest", "Up 10 minutes"),
         ]
         mock_runtime.stop.side_effect = [True, False]
         rc = _stop_all(mock_runtime)
@@ -109,7 +109,7 @@ class TestStopAll:
 
 class TestRunDispatch:
     def test_dispatches_to_stop_all(self, capsys):
-        with patch("clodbox.commands.stop.ContainerRuntime") as m_cls:
+        with patch("kanibako.commands.stop.ContainerRuntime") as m_cls:
             rt = MagicMock()
             rt.list_running.return_value = []
             m_cls.return_value = rt
@@ -121,8 +121,8 @@ class TestRunDispatch:
 
     def test_dispatches_to_stop_one(self):
         with (
-            patch("clodbox.commands.stop.ContainerRuntime") as m_cls,
-            patch("clodbox.commands.stop._stop_one", return_value=0) as m_stop_one,
+            patch("kanibako.commands.stop.ContainerRuntime") as m_cls,
+            patch("kanibako.commands.stop._stop_one", return_value=0) as m_stop_one,
         ):
             rt = MagicMock()
             m_cls.return_value = rt
@@ -133,8 +133,8 @@ class TestRunDispatch:
             m_stop_one.assert_called_once_with(rt, project_dir=None)
 
     def test_runtime_not_found(self, capsys):
-        from clodbox.errors import ContainerError
-        with patch("clodbox.commands.stop.ContainerRuntime", side_effect=ContainerError("No runtime")):
+        from kanibako.errors import ContainerError
+        with patch("kanibako.commands.stop.ContainerRuntime", side_effect=ContainerError("No runtime")):
             import argparse
             args = argparse.Namespace(all_containers=False, path=None)
             rc = run(args)

@@ -1,4 +1,4 @@
-"""clodbox restore: restore session data from archive with validation."""
+"""kanibako restore: restore session data from archive with validation."""
 
 from __future__ import annotations
 
@@ -10,31 +10,31 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from clodbox.config import load_config
-from clodbox.errors import ArchiveError, UserCancelled
-from clodbox.git import is_git_repo
-from clodbox.paths import _xdg, load_std_paths, resolve_project
-from clodbox.utils import confirm_prompt
+from kanibako.config import load_config
+from kanibako.errors import ArchiveError, UserCancelled
+from kanibako.git import is_git_repo
+from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.utils import confirm_prompt
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "restore",
         help="Restore session data from archive",
-        description="Restore session data from a .txz archive created by 'clodbox archive'.",
+        description="Restore session data from a .txz archive created by 'kanibako archive'.",
     )
     p.add_argument("path", nargs="?", default=None, help="Path to the project directory")
     p.add_argument("file", nargs="?", default=None, help="Archive file to restore from")
     p.add_argument(
         "--all", action="store_true", dest="all_archives",
-        help="Restore all clodbox-*.txz archives in the current directory",
+        help="Restore all kanibako-*.txz archives in the current directory",
     )
     p.add_argument("--force", action="store_true", help="Skip all confirmation prompts")
     p.set_defaults(func=run)
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -73,11 +73,11 @@ def _restore_one(std, config, *, project_dir, archive_file, force) -> int:
             return 1
         archive_hash_dir = entries[0]
         archive_hash = archive_hash_dir.name
-        info_file = archive_hash_dir / "clodbox-archive-info.txt"
+        info_file = archive_hash_dir / "kanibako-archive-info.txt"
 
         if not info_file.is_file():
             print(
-                "Error: Invalid archive format (missing clodbox-archive-info.txt)",
+                "Error: Invalid archive format (missing kanibako-archive-info.txt)",
                 file=sys.stderr,
             )
             return 1
@@ -124,7 +124,7 @@ def _restore_one(std, config, *, project_dir, archive_file, force) -> int:
         shutil.copytree(str(archive_hash_dir), str(proj.settings_path))
 
         # Remove info file from restored data
-        restored_info = proj.settings_path / "clodbox-archive-info.txt"
+        restored_info = proj.settings_path / "kanibako-archive-info.txt"
         restored_info.unlink(missing_ok=True)
 
         print("done.")
@@ -147,7 +147,7 @@ def _peek_archive_info(archive_file: Path) -> dict[str, str] | None:
         entries = list(Path(temp_dir).iterdir())
         if not entries:
             return None
-        info_file = entries[0] / "clodbox-archive-info.txt"
+        info_file = entries[0] / "kanibako-archive-info.txt"
         if not info_file.is_file():
             return None
         info = _parse_info(info_file)
@@ -158,13 +158,13 @@ def _peek_archive_info(archive_file: Path) -> dict[str, str] | None:
 
 
 def _restore_all(std, config, args) -> int:
-    """Restore all clodbox-*.txz archives in the current directory."""
+    """Restore all kanibako-*.txz archives in the current directory."""
     import os
 
     scan_dir = Path(os.getcwd())
-    archives = sorted(scan_dir.glob("clodbox-*.txz"))
+    archives = sorted(scan_dir.glob("kanibako-*.txz"))
     if not archives:
-        print(f"No clodbox-*.txz archives found in {scan_dir}")
+        print(f"No kanibako-*.txz archives found in {scan_dir}")
         return 0
 
     # Peek into each archive to get project path
@@ -220,7 +220,7 @@ def _restore_all(std, config, args) -> int:
 
 
 def _parse_info(info_file: Path) -> dict[str, str]:
-    """Parse clodbox-archive-info.txt into a dict."""
+    """Parse kanibako-archive-info.txt into a dict."""
     result: dict[str, str] = {}
     for line in info_file.read_text().splitlines():
         if ": " in line and not line.startswith("  "):

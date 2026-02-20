@@ -1,4 +1,4 @@
-"""Tests for clodbox.paths."""
+"""Tests for kanibako.paths."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import ClodboxConfig, load_config
-from clodbox.errors import ConfigError, ProjectError
-from clodbox.paths import load_std_paths, resolve_project
-from clodbox.utils import project_hash
+from kanibako.config import ClodboxConfig, load_config
+from kanibako.errors import ConfigError, ProjectError
+from kanibako.paths import load_std_paths, resolve_project
+from kanibako.utils import project_hash
 
 
 class TestLoadStdPaths:
