@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'containers/**'
+      - 'src/kanibako/containers/**'
   workflow_dispatch:
 
 env:
@@ -34,8 +34,8 @@ jobs:
       - name: Build and push base image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.base
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.base
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=base
@@ -44,8 +44,8 @@ jobs:
       - name: Build and push systems image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.systems
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.systems
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-systems:latest
           build-args: |
@@ -56,8 +56,8 @@ jobs:
       - name: Build and push jvm image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.jvm
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.jvm
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-jvm:latest
           build-args: |
@@ -68,8 +68,8 @@ jobs:
       - name: Build and push android image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.android
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.android
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-android:latest
           build-args: |
@@ -80,8 +80,8 @@ jobs:
       - name: Build and push ndk image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.ndk
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.ndk
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-ndk:latest
           build-args: |
@@ -92,8 +92,8 @@ jobs:
       - name: Build and push dotnet image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.dotnet
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.dotnet
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-dotnet:latest
           build-args: |
@@ -104,8 +104,8 @@ jobs:
       - name: Build and push behemoth image
         uses: docker/build-push-action@v6
         with:
-          context: containers/
-          file: containers/Containerfile.behemoth
+          context: src/kanibako/containers/
+          file: src/kanibako/containers/Containerfile.behemoth
           push: true
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-behemoth:latest
           build-args: |
