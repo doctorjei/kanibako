@@ -29,6 +29,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/home/agent/.cargo/bin:${PATH}"
 
 # Android NDK (placeholder - users should mount or install specific NDK version)
-# ENV ANDROID_NDK_HOME=/opt/android-ndk
+ENV ANDROID_NDK_HOME=/opt/android-ndk
 
 WORKDIR /home/agent/workspace

@@ -163,6 +163,19 @@ def _run_container(
 
     proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
 
+    # Hint about orphaned project data when initializing a new project
+    if proj.is_new:
+        from clodbox.paths import iter_projects
+        for _settings, _ppath in iter_projects(std, config):
+            if _ppath is not None and not _ppath.is_dir():
+                print(
+                    "hint: orphaned project data detected — "
+                    "run 'clodbox box list' or use 'clodbox box migrate' "
+                    "if you moved a project.",
+                    file=sys.stderr,
+                )
+                break
+
     # Load merged config (global + project)
     project_toml = proj.settings_path / "project.toml"
     merged = load_merged_config(
@@ -172,6 +185,11 @@ def _run_container(
     )
 
     image = merged.container_image
+
+    # Persist image override for new projects so it becomes the default
+    if proj.is_new and image_override:
+        from clodbox.config import write_project_config
+        write_project_config(project_toml, image_override)
 
     # Detect container runtime and ensure image is available
     try:

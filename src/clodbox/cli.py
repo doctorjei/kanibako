@@ -89,6 +89,17 @@ def main(argv: list[str] | None = None) -> None:
             effective = ["start"] + effective
         args = parser.parse_args(effective)
 
+        if args.command != "setup":
+            from clodbox.paths import _xdg
+            _cf = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+            if not _cf.exists():
+                print(
+                    f"clodbox is not set up yet ({_cf} not found).\n"
+                    f"Run 'clodbox setup' first.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
     func = getattr(args, "func", None)
     if func is None:
         parser.print_help()

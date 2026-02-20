@@ -232,3 +232,76 @@ class TestFlagCombinations:
                 extra_args=[],
             )
             assert call_order == ["run", "writeback"]
+
+
+# ---------------------------------------------------------------------------
+# First-boot image persistence (Item 3)
+# ---------------------------------------------------------------------------
+
+class TestFirstBootImagePersistence:
+    def test_first_boot_image_persisted(self, start_mocks):
+        with start_mocks() as m:
+            m.proj.is_new = True
+            with patch("clodbox.config.write_project_config") as m_wpc:
+                _run_container(
+                    project_dir=None, entrypoint=None, image_override="custom:v1",
+                    new_session=False, safe_mode=False, resume_mode=False,
+                    extra_args=[],
+                )
+                m_wpc.assert_called_once()
+
+    def test_existing_project_image_not_persisted(self, start_mocks):
+        with start_mocks() as m:
+            m.proj.is_new = False
+            with patch("clodbox.config.write_project_config") as m_wpc:
+                _run_container(
+                    project_dir=None, entrypoint=None, image_override="custom:v1",
+                    new_session=False, safe_mode=False, resume_mode=False,
+                    extra_args=[],
+                )
+                m_wpc.assert_not_called()
+
+    def test_first_boot_no_override_not_persisted(self, start_mocks):
+        with start_mocks() as m:
+            m.proj.is_new = True
+            with patch("clodbox.config.write_project_config") as m_wpc:
+                _run_container(
+                    project_dir=None, entrypoint=None, image_override=None,
+                    new_session=False, safe_mode=False, resume_mode=False,
+                    extra_args=[],
+                )
+                m_wpc.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Orphan detection hint (Item 1)
+# ---------------------------------------------------------------------------
+
+class TestOrphanDetectionHint:
+    def test_orphan_hint_on_new_project(self, start_mocks, capsys):
+        with start_mocks() as m:
+            m.proj.is_new = True
+            with patch("clodbox.paths.iter_projects") as m_iter:
+                orphan_path = MagicMock()
+                orphan_path.is_dir.return_value = False
+                m_iter.return_value = [(MagicMock(), orphan_path)]
+                _run_container(
+                    project_dir=None, entrypoint=None, image_override=None,
+                    new_session=False, safe_mode=False, resume_mode=False,
+                    extra_args=[],
+                )
+            captured = capsys.readouterr()
+            assert "orphaned" in captured.err
+
+    def test_no_orphan_hint_on_existing_project(self, start_mocks, capsys):
+        with start_mocks() as m:
+            m.proj.is_new = False
+            with patch("clodbox.paths.iter_projects") as m_iter:
+                m_iter.return_value = []
+                _run_container(
+                    project_dir=None, entrypoint=None, image_override=None,
+                    new_session=False, safe_mode=False, resume_mode=False,
+                    extra_args=[],
+                )
+            captured = capsys.readouterr()
+            assert "orphaned" not in captured.err

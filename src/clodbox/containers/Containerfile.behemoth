@@ -43,9 +43,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       && rm /tmp/dotnet-install.sh \
     )
 
-# Android SDK placeholder
-RUN mkdir -p /opt/android-sdk
+# Android SDK command-line tools (provides sdkmanager for bootstrapping)
+RUN mkdir -p /opt/android-sdk/cmdline-tools \
+    && cd /tmp \
+    && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip \
+    && unzip -q cmdline-tools.zip \
+    && mv cmdline-tools /opt/android-sdk/cmdline-tools/latest \
+    && rm cmdline-tools.zip
 ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
 ENV PATH="${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools"
 
 # Rust (installed as agent so ~/.cargo has correct ownership)

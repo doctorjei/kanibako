@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
 
 from clodbox.errors import ClodboxError, UserCancelled
+
+
+def _fake_xdg(*args, **kwargs):
+    """Return a mock Path whose / chain ends with .exists() → True."""
+    p = MagicMock(spec=Path)
+    p.__truediv__ = lambda self, other: p
+    p.exists.return_value = True
+    return p
 
 
 class TestMainExitCodes:
@@ -15,6 +24,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_parser,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -29,6 +39,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_parser,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -43,6 +54,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_parser,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -57,6 +69,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_parser,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -71,6 +84,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_parser,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -86,6 +100,7 @@ class TestMainExitCodes:
 
         with (
             patch("clodbox.cli.build_parser") as mock_bp,
+            patch("clodbox.paths._xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             parser = MagicMock()
@@ -99,3 +114,29 @@ class TestMainExitCodes:
             main([])
         assert exc_info.value.code == 0
         parser.parse_args.assert_called_once_with(["start"])
+
+
+class TestConfigPreCheck:
+    def test_missing_config_exits_1(self, tmp_path, monkeypatch):
+        """Running a non-setup command without config file exits 1."""
+        from clodbox.cli import main
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "no_config"))
+        with pytest.raises(SystemExit) as exc_info:
+            main(["start"])
+        assert exc_info.value.code == 1
+
+    def test_setup_exempt_from_config_check(self):
+        """'setup' command does not fail on missing config."""
+        from clodbox.cli import main
+
+        with (
+            patch("clodbox.cli.build_parser") as mock_bp,
+            pytest.raises(SystemExit) as exc_info,
+        ):
+            args = MagicMock()
+            args.command = "setup"
+            args.func.return_value = 0
+            mock_bp.return_value.parse_args.return_value = args
+            main(["setup"])
+        assert exc_info.value.code == 0
