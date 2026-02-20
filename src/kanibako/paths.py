@@ -33,9 +33,12 @@ class ProjectPaths:
 
     project_path: Path
     project_hash: str
-    settings_path: Path
-    dot_path: Path
-    cfg_file: Path
+    settings_path: Path     # ~/.local/share/kanibako/settings/{hash}
+    dot_path: Path           # settings_path / "dotclaude" (→ /home/agent/.claude)
+    cfg_file: Path           # settings_path / "claude.json" (→ /home/agent/.claude.json)
+    shell_path: Path         # ~/.local/share/kanibako/shell/{hash} (→ /home/agent)
+    vault_ro_path: Path      # {project}/vault/share-ro (→ /home/agent/share-ro)
+    vault_rw_path: Path      # {project}/vault/share-rw (→ /home/agent/share-rw)
     is_new: bool = field(default=False)
 
 
@@ -122,10 +125,16 @@ def resolve_project(
     settings_path = std.data_path / config.paths_projects_path / phash
     dot_path = settings_path / config.paths_dot_path
     cfg_file = settings_path / config.paths_cfg_file
+    shell_path = std.data_path / "shell" / phash
+    vault_ro_path = project_path / "vault" / "share-ro"
+    vault_rw_path = project_path / "vault" / "share-rw"
 
     is_new = False
     if initialize and not settings_path.is_dir():
-        _init_project(std, settings_path, dot_path, cfg_file, project_path)
+        _init_project(
+            std, settings_path, dot_path, cfg_file, shell_path,
+            vault_ro_path, vault_rw_path, project_path,
+        )
         is_new = True
 
     if initialize:
@@ -134,6 +143,10 @@ def resolve_project(
             dot_path.mkdir(parents=True, exist_ok=True)
         if not cfg_file.exists():
             cfg_file.touch()
+        # Ensure shell_path exists even for pre-existing projects.
+        if not shell_path.is_dir():
+            shell_path.mkdir(parents=True, exist_ok=True)
+            _bootstrap_shell(shell_path)
         # Backfill project-path.txt for pre-existing projects.
         breadcrumb = settings_path / "project-path.txt"
         if settings_path.is_dir() and not breadcrumb.exists():
@@ -145,8 +158,28 @@ def resolve_project(
         settings_path=settings_path,
         dot_path=dot_path,
         cfg_file=cfg_file,
+        shell_path=shell_path,
+        vault_ro_path=vault_ro_path,
+        vault_rw_path=vault_rw_path,
         is_new=is_new,
     )
+
+
+def _bootstrap_shell(shell_path: Path) -> None:
+    """Write minimal shell skeleton files into a new shell directory."""
+    bashrc = shell_path / ".bashrc"
+    if not bashrc.exists():
+        bashrc.write_text(
+            "# kanibako shell environment\n"
+            "[ -f /etc/bashrc ] && . /etc/bashrc\n"
+            'export PS1="(kanibako) \\u@\\h:\\w\\$ "\n'
+        )
+    profile = shell_path / ".profile"
+    if not profile.exists():
+        profile.write_text(
+            "# kanibako login profile\n"
+            "[ -f ~/.bashrc ] && . ~/.bashrc\n"
+        )
 
 
 def _init_project(
@@ -154,6 +187,9 @@ def _init_project(
     settings_path: Path,
     dot_path: Path,
     cfg_file: Path,
+    shell_path: Path,
+    vault_ro_path: Path,
+    vault_rw_path: Path,
     project_path: Path,
 ) -> None:
     """First-time project setup: create directories, copy credential template."""
@@ -177,6 +213,19 @@ def _init_project(
     else:
         dot_path.mkdir(parents=True, exist_ok=True)
         cfg_file.touch()
+
+    # Persistent agent home (shell).
+    shell_path.mkdir(parents=True, exist_ok=True)
+    _bootstrap_shell(shell_path)
+
+    # Vault directories.
+    vault_ro_path.mkdir(parents=True, exist_ok=True)
+    vault_rw_path.mkdir(parents=True, exist_ok=True)
+    # .gitignore in vault/ to exclude share-rw from version control.
+    vault_dir = vault_ro_path.parent
+    gitignore = vault_dir / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text("share-rw/\n")
 
     print("done.", file=sys.stderr)
 

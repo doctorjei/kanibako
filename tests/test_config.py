@@ -20,7 +20,7 @@ class TestLoadConfig:
     def test_defaults(self, tmp_path):
         cfg = load_config(tmp_path / "nonexistent.toml")
         assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
-        assert cfg.paths_dot_path == "dotclod"
+        assert cfg.paths_dot_path == "dotclaude"
 
     def test_round_trip(self, tmp_path):
         path = tmp_path / "test.toml"
@@ -88,7 +88,7 @@ class TestMigrateRc:
 
         cfg = migrate_rc(rc, toml)
         assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
-        assert cfg.paths_dot_path == "dotclod"
+        assert cfg.paths_dot_path == "dotclod"  # preserves old value from rc
         assert toml.exists()
         assert rc.with_suffix(".rc.bak").exists()
         assert not rc.exists()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 
 import pytest
 
@@ -45,7 +46,7 @@ class TestBoxList:
         gone_dir = tmp_home / "gone_project"
         gone_dir.mkdir()
         resolve_project(std, config, project_dir=str(gone_dir), initialize=True)
-        gone_dir.rmdir()
+        shutil.rmtree(gone_dir)
 
         args = argparse.Namespace()
         rc = run_list(args)

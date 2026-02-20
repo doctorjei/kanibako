@@ -19,9 +19,9 @@ import tomllib
 _DEFAULTS = {
     "paths_relative_std_path": "kanibako",
     "paths_init_credentials_path": "credentials",
-    "paths_projects_path": "projects",
-    "paths_dot_path": "dotclod",
-    "paths_cfg_file": "dotclod.json",
+    "paths_projects_path": "settings",
+    "paths_dot_path": "dotclaude",
+    "paths_cfg_file": "claude.json",
     "container_image": "ghcr.io/doctorjei/kanibako-base:latest",
 }
 
