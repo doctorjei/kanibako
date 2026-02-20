@@ -47,8 +47,9 @@ WORKDIR /home/agent
 # Set up PATH and create required directories.
 ENV PATH="/home/agent/.local/bin:${PATH}"
 
-RUN mkdir -p /home/agent/workspace /home/agent/.claude \
-    /home/agent/.local/bin /home/agent/.local/share/claude
+RUN mkdir -p /home/agent/workspace /home/agent/.kanibako \
+    /home/agent/.claude /home/agent/.local/bin /home/agent/.local/share/claude \
+    /home/agent/share-ro /home/agent/share-rw
 
 WORKDIR /home/agent/workspace
 

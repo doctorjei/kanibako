@@ -270,8 +270,12 @@ def _run_container(
         rc = runtime.run(
             image,
             project_path=proj.project_path,
+            settings_path=proj.settings_path,
             dot_path=proj.dot_path,
             cfg_file=proj.cfg_file,
+            shell_path=proj.shell_path,
+            vault_ro_path=proj.vault_ro_path,
+            vault_rw_path=proj.vault_rw_path,
             claude_install=claude_install,
             name=container_name,
             entrypoint=entrypoint,

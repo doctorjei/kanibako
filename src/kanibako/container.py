@@ -178,8 +178,12 @@ class ContainerRuntime:
         image: str,
         *,
         project_path: Path,
+        settings_path: Path,
         dot_path: Path,
         cfg_file: Path,
+        shell_path: Path,
+        vault_ro_path: Path,
+        vault_rw_path: Path,
         claude_install: ClaudeInstall | None = None,
         name: str | None = None,
         entrypoint: str | None = None,
@@ -188,10 +192,19 @@ class ContainerRuntime:
         """Run a container and return the exit code."""
         cmd: list[str] = [
             self.cmd, "run", "-it", "--rm", "--userns=keep-id",
+            # Persistent agent home (shell)
+            "-v", f"{shell_path}:/home/agent:Z,U",
+            # Project workspace
             "-v", f"{project_path}:/home/agent/workspace:Z,U",
             "-w", "/home/agent/workspace",
+            # Project settings (visible to agent as .kanibako)
+            "-v", f"{settings_path}:/home/agent/.kanibako:Z,U",
+            # Claude config mirror
             "-v", f"{dot_path}:/home/agent/.claude:Z,U",
             "-v", f"{cfg_file}:/home/agent/.claude.json:Z,U",
+            # Vault mounts
+            "-v", f"{vault_ro_path}:/home/agent/share-ro:ro",
+            "-v", f"{vault_rw_path}:/home/agent/share-rw:Z,U",
         ]
         # Mount host's Claude installation if available
         if claude_install:

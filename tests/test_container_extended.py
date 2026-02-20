@@ -99,13 +99,21 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
             )
             cmd = m_run.call_args[0][0]
             # Check volume mounts
             assert "-v" in cmd
+            assert "/shell:/home/agent:Z,U" in cmd
             assert "/proj:/home/agent/workspace:Z,U" in cmd
+            assert "/settings:/home/agent/.kanibako:Z,U" in cmd
             assert "/dot:/home/agent/.claude:Z,U" in cmd
             assert "/cfg.json:/home/agent/.claude.json:Z,U" in cmd
+            assert "/vault-ro:/home/agent/share-ro:ro" in cmd
+            assert "/vault-rw:/home/agent/share-rw:Z,U" in cmd
 
     def test_entrypoint_override(self):
         rt = self._make_rt()
@@ -116,6 +124,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
                 entrypoint="/bin/bash",
             )
             cmd = m_run.call_args[0][0]
@@ -131,6 +143,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
             )
             cmd = m_run.call_args[0][0]
             assert "--entrypoint" not in cmd
@@ -144,6 +160,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
                 cli_args=["--continue", "--verbose"],
             )
             cmd = m_run.call_args[0][0]
@@ -162,6 +182,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
                 claude_install=claude,
             )
             cmd = m_run.call_args[0][0]
@@ -178,6 +202,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
                 claude_install=None,
             )
             cmd = m_run.call_args[0][0]
@@ -194,6 +222,10 @@ class TestRunCommandAssembly:
                 project_path=Path("/proj"),
                 dot_path=Path("/dot"),
                 cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=Path("/vault-ro"),
+                vault_rw_path=Path("/vault-rw"),
                 cli_args=None,
             )
             cmd = m_run.call_args[0][0]
