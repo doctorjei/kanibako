@@ -187,6 +187,9 @@ def _run_container(
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    from clodbox.freshness import check_image_freshness
+    check_image_freshness(runtime, image, std.cache_path)
+
     # Detect host Claude installation for bind-mounting
     claude_install = detect_claude_install()
     if claude_install:

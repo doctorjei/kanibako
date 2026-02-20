@@ -133,3 +133,88 @@ class TestExtractGhcrOwner:
         from clodbox.commands.image import _extract_ghcr_owner
 
         assert _extract_ghcr_owner("docker.io/library/ubuntu:latest") is None
+
+
+class TestResolveImageName:
+    def test_suffix_expansion(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("base", "ghcr.io/doctorjei/clodbox-base:latest")
+        assert result == "ghcr.io/doctorjei/clodbox-base:latest"
+
+    def test_suffix_systems(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("systems", "ghcr.io/doctorjei/clodbox-base:latest")
+        assert result == "ghcr.io/doctorjei/clodbox-systems:latest"
+
+    def test_clodbox_prefix_expansion(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("clodbox-custom", "ghcr.io/doctorjei/clodbox-base:latest")
+        assert result == "ghcr.io/doctorjei/clodbox-custom:latest"
+
+    def test_full_path_passthrough(self):
+        from clodbox.commands.image import resolve_image_name
+
+        full = "ghcr.io/other/clodbox-base:v2"
+        result = resolve_image_name(full, "ghcr.io/doctorjei/clodbox-base:latest")
+        assert result == full
+
+    def test_unknown_name_passthrough(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("ubuntu", "ghcr.io/doctorjei/clodbox-base:latest")
+        assert result == "ubuntu"
+
+    def test_prefix_derived_from_configured(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("jvm", "ghcr.io/myowner/clodbox-base:latest")
+        assert result == "ghcr.io/myowner/clodbox-jvm:latest"
+
+    def test_no_prefix_extractable(self):
+        from clodbox.commands.image import resolve_image_name
+
+        result = resolve_image_name("base", "localimage:latest")
+        assert result == "base"
+
+
+class TestExtractRegistryPrefix:
+    def test_ghcr(self):
+        from clodbox.commands.image import _extract_registry_prefix
+
+        assert _extract_registry_prefix("ghcr.io/doctorjei/clodbox-base:latest") == "ghcr.io/doctorjei"
+
+    def test_two_parts_returns_none(self):
+        from clodbox.commands.image import _extract_registry_prefix
+
+        assert _extract_registry_prefix("library/ubuntu:latest") is None
+
+    def test_single_part_returns_none(self):
+        from clodbox.commands.image import _extract_registry_prefix
+
+        assert _extract_registry_prefix("ubuntu:latest") is None
+
+
+class TestRebuildWithShorthand:
+    def test_shorthand_resolved_in_rebuild(self, tmp_home, config_file, credentials_dir, capsys):
+        """Shorthand name gets resolved to full image in rebuild."""
+        from unittest.mock import MagicMock, patch
+        from clodbox.commands.image import run_rebuild
+
+        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+            runtime = MagicMock()
+            runtime.pull.return_value = True
+            MockRT.return_value = runtime
+
+            args = argparse.Namespace(
+                image="systems",
+                all_images=False, local_build=False,
+            )
+            rc = run_rebuild(args)
+            assert rc == 0
+            # Should have resolved "systems" to the full image path
+            call_args = runtime.pull.call_args[0]
+            assert "clodbox-systems" in call_args[0]
+            assert call_args[0].startswith("ghcr.io/")

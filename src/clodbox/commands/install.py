@@ -16,6 +16,7 @@ from clodbox.config import (
     write_global_config,
 )
 from clodbox.container import ContainerRuntime
+from clodbox.containerfiles import get_containerfile
 from clodbox.credentials import filter_settings
 from clodbox.errors import ContainerError
 from clodbox.paths import _xdg
@@ -73,20 +74,10 @@ def run(args: argparse.Namespace) -> int:
     print("done!")
 
     # ------------------------------------------------------------------
-    # 3. Copy Containerfiles into data directory
+    # 3. Create containers directory for user overrides
     # ------------------------------------------------------------------
-    print("Installing Containerfiles... ", end="", flush=True)
     containers_dest = data_path / "containers"
     containers_dest.mkdir(parents=True, exist_ok=True)
-
-    # Look for containers/ directory relative to the package or repo
-    containers_src = _find_containers_dir()
-    if containers_src:
-        for cf in containers_src.glob("Containerfile.*"):
-            shutil.copy2(str(cf), str(containers_dest / cf.name))
-        print("done!")
-    else:
-        print("skipped (no Containerfiles found).")
 
     # ------------------------------------------------------------------
     # 4. Pull or build base container image
@@ -100,9 +91,9 @@ def run(args: argparse.Namespace) -> int:
             print("Image pulled from registry!")
         else:
             print("Pull failed; building locally...")
-            base_cf = containers_dest / "Containerfile.base"
-            if base_cf.is_file():
-                runtime.build(image, base_cf, containers_dest)
+            base_cf = get_containerfile("base", containers_dest)
+            if base_cf is not None:
+                runtime.build(image, base_cf, base_cf.parent)
                 print("Base image built!")
             else:
                 print("Warning: No Containerfile.base found; skipping build.", file=sys.stderr)
@@ -126,19 +117,6 @@ def run(args: argparse.Namespace) -> int:
 
     return 0
 
-
-def _find_containers_dir() -> Path | None:
-    """Locate the containers/ directory (repo checkout or installed package)."""
-    # Check relative to this file (development layout)
-    pkg_dir = Path(__file__).resolve().parent.parent.parent.parent  # src/../..
-    candidates = [
-        pkg_dir / "containers",
-        Path.cwd() / "containers",
-    ]
-    for d in candidates:
-        if d.is_dir() and any(d.glob("Containerfile.*")):
-            return d
-    return None
 
 
 def _install_cron() -> None:

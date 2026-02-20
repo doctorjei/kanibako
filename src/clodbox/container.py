@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from clodbox.containerfiles import get_containerfile
 from clodbox.errors import ContainerError
 
 
@@ -152,13 +153,13 @@ class ContainerRuntime:
                 f"Container image not available and cannot determine Containerfile "
                 f"for: {image}"
             )
-        containerfile = containers_dir / f"Containerfile.{suffix}"
-        if not containerfile.is_file():
+        containerfile = get_containerfile(suffix, containers_dir)
+        if containerfile is None:
             raise ContainerError(
                 f"Container image not available and no local Containerfile found.\n"
                 f"Image: {image}"
             )
-        self.build(image, containerfile, containers_dir)
+        self.build(image, containerfile, containerfile.parent)
         print("Image built successfully.", file=sys.stderr)
 
     @staticmethod
@@ -234,6 +235,36 @@ class ContainerRuntime:
             if len(parts) == 3:
                 containers.append((parts[0], parts[1], parts[2]))
         return containers
+
+    # ------------------------------------------------------------------
+    # Digest
+    # ------------------------------------------------------------------
+
+    def get_local_digest(self, image: str) -> str | None:
+        """Return the repo digest (``sha256:...``) for a local image, or None."""
+        try:
+            result = subprocess.run(
+                [self.cmd, "image", "inspect", image, "--format", "json"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                return None
+            import json
+            data = json.loads(result.stdout)
+            # podman returns a list, docker returns an object
+            if isinstance(data, list):
+                data = data[0] if data else {}
+            digests = data.get("RepoDigests", [])
+            if not digests:
+                return None
+            # Extract the sha256:... portion from e.g. "ghcr.io/x/img@sha256:abc..."
+            digest = digests[0]
+            if "@" in digest:
+                return digest.split("@", 1)[1]
+            return digest
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Listing

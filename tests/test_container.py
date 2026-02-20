@@ -113,3 +113,44 @@ class TestContainerRuntime:
         assert ContainerRuntime._guess_containerfile("ghcr.io/x/clodbox-systems:v1") == "systems"
         assert ContainerRuntime._guess_containerfile("ghcr.io/x/clodbox-jvm:latest") == "jvm"
         assert ContainerRuntime._guess_containerfile("totally-unrelated:latest") is None
+
+
+class TestGetLocalDigest:
+    def test_success_podman_format(self):
+        """Podman returns a list; extract digest from RepoDigests."""
+        import json
+        rt = ContainerRuntime(command="echo")
+        inspect_output = json.dumps([{
+            "RepoDigests": ["ghcr.io/x/clodbox-base@sha256:abc123"]
+        }])
+        from unittest.mock import MagicMock
+        with patch("clodbox.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=0, stdout=inspect_output)
+            result = rt.get_local_digest("ghcr.io/x/clodbox-base:latest")
+        assert result == "sha256:abc123"
+
+    def test_failure_returns_none(self):
+        rt = ContainerRuntime(command="echo")
+        from unittest.mock import MagicMock
+        with patch("clodbox.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=1, stdout="")
+            result = rt.get_local_digest("nonexistent:latest")
+        assert result is None
+
+    def test_empty_repo_digests(self):
+        """Locally-built images may have no RepoDigests."""
+        import json
+        rt = ContainerRuntime(command="echo")
+        inspect_output = json.dumps([{"RepoDigests": []}])
+        from unittest.mock import MagicMock
+        with patch("clodbox.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=0, stdout=inspect_output)
+            result = rt.get_local_digest("local:latest")
+        assert result is None
+
+    def test_exception_returns_none(self):
+        """Any unexpected exception returns None."""
+        rt = ContainerRuntime(command="echo")
+        with patch("clodbox.container.subprocess.run", side_effect=OSError("fail")):
+            result = rt.get_local_digest("img:latest")
+        assert result is None

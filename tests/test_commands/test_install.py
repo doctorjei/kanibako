@@ -33,7 +33,6 @@ class TestInstall:
         with (
             patch("clodbox.commands.install.ContainerRuntime", side_effect=Exception("no runtime")),
             patch("clodbox.commands.install._install_cron"),
-            patch("clodbox.commands.install._find_containers_dir", return_value=None),
         ):
             args = argparse.Namespace()
             rc = run(args)

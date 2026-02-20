@@ -77,7 +77,6 @@ class TestInstallExtended:
         with (
             patch("clodbox.commands.install.ContainerRuntime", side_effect=Exception("no")),
             patch("clodbox.commands.install._install_cron"),
-            patch("clodbox.commands.install._find_containers_dir", return_value=None),
         ):
             rc = run(argparse.Namespace())
         assert rc == 0
@@ -97,7 +96,6 @@ class TestInstallExtended:
         with (
             patch("clodbox.commands.install.ContainerRuntime", side_effect=Exception("no")),
             patch("clodbox.commands.install._install_cron"),
-            patch("clodbox.commands.install._find_containers_dir", return_value=None),
         ):
             rc = run(argparse.Namespace())
         assert rc == 0
@@ -117,7 +115,6 @@ class TestInstallExtended:
         with (
             patch("clodbox.commands.install.ContainerRuntime", side_effect=Exception("no")),
             patch("clodbox.commands.install._install_cron"),
-            patch("clodbox.commands.install._find_containers_dir", return_value=None),
         ):
             rc = run(argparse.Namespace())
         assert rc == 0
@@ -125,18 +122,3 @@ class TestInstallExtended:
         loaded = load_config(config_file)
         assert loaded.container_image == ClodboxConfig().container_image
 
-    def test_containers_dir_discovery(self, tmp_home):
-        from clodbox.commands.install import _find_containers_dir
-
-        # Create a containers dir with Containerfiles
-        containers = tmp_home / "project" / "containers"
-        containers.mkdir(parents=True)
-        (containers / "Containerfile.base").write_text("FROM ubuntu\n")
-
-        import os
-        os.chdir(tmp_home / "project")
-
-        result = _find_containers_dir()
-        # Should find the containers dir in cwd
-        if result is not None:
-            assert (result / "Containerfile.base").exists()

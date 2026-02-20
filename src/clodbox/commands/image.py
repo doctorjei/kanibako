@@ -11,6 +11,7 @@ from pathlib import Path
 
 from clodbox.config import load_config, load_merged_config
 from clodbox.container import ContainerRuntime
+from clodbox.containerfiles import get_containerfile, list_containerfile_suffixes
 from clodbox.errors import ContainerError
 from clodbox.paths import _xdg, load_std_paths, resolve_project
 
@@ -85,18 +86,14 @@ def run_list(args: argparse.Namespace) -> int:
 
     # ---- Built-in Variants ----
     containers_dir = std.data_path / "containers"
-    found_variants = False
-    if containers_dir.is_dir():
-        for cf in sorted(containers_dir.glob("Containerfile.*")):
-            variant = cf.suffix.lstrip(".")
-            if not found_variants:
-                print("Built-in image variants:")
-                found_variants = True
+    variants = list_containerfile_suffixes(containers_dir)
+    if variants:
+        print("Built-in image variants:")
+        for variant in variants:
             desc = _VARIANT_DESCRIPTIONS.get(variant, "(no description)")
             print(f"  {variant:<12} {desc}")
-
-    if not found_variants:
-        print("Built-in image variants: (none installed -- run clodbox install first)")
+    else:
+        print("Built-in image variants: (none installed)")
 
     print()
 
@@ -161,6 +158,48 @@ def _list_remote_packages(owner: str) -> None:
         print(f"  (no clodbox packages found for {owner})")
 
 
+def _extract_registry_prefix(image: str) -> str | None:
+    """Extract ``registry/owner`` prefix from a fully qualified image name.
+
+    >>> _extract_registry_prefix("ghcr.io/doctorjei/clodbox-base:latest")
+    'ghcr.io/doctorjei'
+    """
+    # Expect at least registry/owner/name
+    parts = image.split("/")
+    if len(parts) >= 3:
+        return "/".join(parts[:-1])
+    return None
+
+
+# Known shorthand suffixes that map to clodbox-<suffix> images.
+_KNOWN_SUFFIXES = {"base", "systems", "jvm", "android", "ndk", "dotnet", "behemoth"}
+
+
+def resolve_image_name(name: str, configured_image: str) -> str:
+    """Expand a shorthand image name to a fully qualified image reference.
+
+    - If *name* contains ``/``, it is already qualified — returned as-is.
+    - If *name* is a known suffix (``base``, ``systems``, …), expand to
+      ``{prefix}/clodbox-{name}:latest``.
+    - If *name* starts with ``clodbox-``, expand to ``{prefix}/{name}:latest``.
+    - Otherwise return *name* unchanged.
+    """
+    if "/" in name:
+        return name
+
+    prefix = _extract_registry_prefix(configured_image)
+    if prefix is None:
+        return name
+
+    if name in _KNOWN_SUFFIXES:
+        return f"{prefix}/clodbox-{name}:latest"
+
+    if name.startswith("clodbox-"):
+        return f"{prefix}/{name}:latest"
+
+    return name
+
+
 def run_rebuild(args: argparse.Namespace) -> int:
     """Update container image(s): pull from registry (default) or build locally."""
     config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
@@ -185,10 +224,12 @@ def run_rebuild(args: argparse.Namespace) -> int:
         return _update_all(runtime, containers_dir, local_build=local_build)
 
     # Determine which image to update
+    merged = load_merged_config(config_file, None)
     image = args.image
     if image is None:
-        merged = load_merged_config(config_file, None)
         image = merged.container_image
+    else:
+        image = resolve_image_name(image, merged.container_image)
 
     return _update_one(runtime, image, containers_dir, local_build=local_build)
 
@@ -223,14 +264,14 @@ def _build_one(runtime: ContainerRuntime, image: str, containers_dir: Path) -> i
         ), file=sys.stderr)
         return 1
 
-    containerfile = containers_dir / f"Containerfile.{suffix}"
-    if not containerfile.is_file():
-        print(f"Error: Containerfile not found: {containerfile}", file=sys.stderr)
+    containerfile = get_containerfile(suffix, containers_dir)
+    if containerfile is None:
+        print(f"Error: Containerfile not found for variant: {suffix}", file=sys.stderr)
         return 1
 
     print(f"Building {image} from Containerfile.{suffix}...")
     print()
-    rc = runtime.rebuild(image, containerfile, containers_dir)
+    rc = runtime.rebuild(image, containerfile, containerfile.parent)
     if rc == 0:
         print()
         print(f"Successfully built {image}")

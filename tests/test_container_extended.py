@@ -58,10 +58,11 @@ class TestEnsureImage:
         rt = ContainerRuntime(command="echo")
         containers_dir = tmp_path / "containers"
         containers_dir.mkdir()
-        # No matching Containerfile for clodbox-base
+        # No matching Containerfile for clodbox-base (mock bundled to return None too)
         with (
             patch.object(rt, "image_exists", return_value=False),
             patch.object(rt, "pull", return_value=False),
+            patch("clodbox.container.get_containerfile", return_value=None),
         ):
             with pytest.raises(ContainerError, match="no local Containerfile"):
                 rt.ensure_image("clodbox-base:latest", containers_dir)
