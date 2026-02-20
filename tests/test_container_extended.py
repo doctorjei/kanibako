@@ -90,7 +90,36 @@ class TestRunCommandAssembly:
     def _make_rt(self):
         return ContainerRuntime(command="/usr/bin/podman")
 
-    def test_volume_mounts(self):
+    def test_volume_mounts(self, tmp_path):
+        rt = self._make_rt()
+        vault_ro = tmp_path / "vault-ro"
+        vault_rw = tmp_path / "vault-rw"
+        vault_ro.mkdir()
+        vault_rw.mkdir()
+        with patch("kanibako.container.subprocess.run") as m_run:
+            m_run.return_value = MagicMock(returncode=0)
+            rt.run(
+                "img:latest",
+                project_path=Path("/proj"),
+                dot_path=Path("/dot"),
+                cfg_file=Path("/cfg.json"),
+                settings_path=Path("/settings"),
+                shell_path=Path("/shell"),
+                vault_ro_path=vault_ro,
+                vault_rw_path=vault_rw,
+            )
+            cmd = m_run.call_args[0][0]
+            # Check volume mounts
+            assert "-v" in cmd
+            assert "/shell:/home/agent:Z,U" in cmd
+            assert "/proj:/home/agent/workspace:Z,U" in cmd
+            assert "/settings:/home/agent/.kanibako:Z,U" in cmd
+            assert "/dot:/home/agent/.claude:Z,U" in cmd
+            assert "/cfg.json:/home/agent/.claude.json:Z,U" in cmd
+            assert f"{vault_ro}:/home/agent/share-ro:ro" in cmd
+            assert f"{vault_rw}:/home/agent/share-rw:Z,U" in cmd
+
+    def test_vault_mounts_skipped_when_missing(self):
         rt = self._make_rt()
         with patch("kanibako.container.subprocess.run") as m_run:
             m_run.return_value = MagicMock(returncode=0)
@@ -101,19 +130,12 @@ class TestRunCommandAssembly:
                 cfg_file=Path("/cfg.json"),
                 settings_path=Path("/settings"),
                 shell_path=Path("/shell"),
-                vault_ro_path=Path("/vault-ro"),
-                vault_rw_path=Path("/vault-rw"),
+                vault_ro_path=Path("/nonexistent/vault-ro"),
+                vault_rw_path=Path("/nonexistent/vault-rw"),
             )
             cmd = m_run.call_args[0][0]
-            # Check volume mounts
-            assert "-v" in cmd
-            assert "/shell:/home/agent:Z,U" in cmd
-            assert "/proj:/home/agent/workspace:Z,U" in cmd
-            assert "/settings:/home/agent/.kanibako:Z,U" in cmd
-            assert "/dot:/home/agent/.claude:Z,U" in cmd
-            assert "/cfg.json:/home/agent/.claude.json:Z,U" in cmd
-            assert "/vault-ro:/home/agent/share-ro:ro" in cmd
-            assert "/vault-rw:/home/agent/share-rw:Z,U" in cmd
+            assert "share-ro" not in " ".join(cmd)
+            assert "share-rw" not in " ".join(cmd)
 
     def test_entrypoint_override(self):
         rt = self._make_rt()

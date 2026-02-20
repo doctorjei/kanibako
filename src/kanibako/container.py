@@ -202,10 +202,16 @@ class ContainerRuntime:
             # Claude config mirror
             "-v", f"{dot_path}:/home/agent/.claude:Z,U",
             "-v", f"{cfg_file}:/home/agent/.claude.json:Z,U",
-            # Vault mounts
-            "-v", f"{vault_ro_path}:/home/agent/share-ro:ro",
-            "-v", f"{vault_rw_path}:/home/agent/share-rw:Z,U",
         ]
+        # Vault mounts (only if directories exist)
+        if vault_ro_path.is_dir():
+            cmd += ["-v", f"{vault_ro_path}:/home/agent/share-ro:ro"]
+        else:
+            print(f"Note: Vault read-only directory not found ({vault_ro_path}), skipping mount.", file=sys.stderr)
+        if vault_rw_path.is_dir():
+            cmd += ["-v", f"{vault_rw_path}:/home/agent/share-rw:Z,U"]
+        else:
+            print(f"Note: Vault read-write directory not found ({vault_rw_path}), skipping mount.", file=sys.stderr)
         # Mount host's Claude installation if available
         if claude_install:
             cmd += [
