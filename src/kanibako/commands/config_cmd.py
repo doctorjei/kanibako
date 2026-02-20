@@ -7,7 +7,7 @@ import sys
 from dataclasses import fields
 
 from kanibako.config import (
-    ClodboxConfig,
+    KanibakoConfig,
     load_config,
     load_merged_config,
     write_project_config,
@@ -75,7 +75,7 @@ def run(args: argparse.Namespace) -> int:
 def _show_config(config_file, project_toml, proj) -> int:
     """Print all merged configuration values."""
     merged = load_merged_config(config_file, project_toml)
-    defaults = ClodboxConfig()
+    defaults = KanibakoConfig()
 
     # Determine which keys have project-level overrides.
     project_overrides: set[str] = set()

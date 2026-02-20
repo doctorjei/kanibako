@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from kanibako import __version__
-from kanibako.errors import ClodboxError, UserCancelled
+from kanibako.errors import KanibakoError, UserCancelled
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> None:
     except UserCancelled:
         print("Aborted.")
         rc = 2
-    except ClodboxError as e:
+    except KanibakoError as e:
         print(f"Error: {e}", file=sys.stderr)
         rc = 1
     except KeyboardInterrupt:

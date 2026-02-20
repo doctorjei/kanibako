@@ -9,7 +9,7 @@ import pytest
 
 from unittest.mock import patch
 
-from kanibako.config import ClodboxConfig, load_config, write_global_config, write_project_config
+from kanibako.config import KanibakoConfig, load_config, write_global_config, write_project_config
 
 
 class TestConfigGet:

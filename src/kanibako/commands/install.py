@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from kanibako.config import (
-    ClodboxConfig,
+    KanibakoConfig,
     load_config,
     migrate_rc,
     write_global_config,
@@ -48,7 +48,7 @@ def run(args: argparse.Namespace) -> int:
         config = migrate_rc(legacy_rc, config_file)
     else:
         print("Writing general configuration file (kanibako.toml)... ", end="", flush=True)
-        config = ClodboxConfig()
+        config = KanibakoConfig()
         write_global_config(config_file, config)
         print("done!")
 

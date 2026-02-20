@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kanibako.config import ClodboxConfig, write_global_config
+from kanibako.config import KanibakoConfig, write_global_config
 
 
 @pytest.fixture
@@ -53,8 +53,8 @@ def config_file(tmp_home):
 
 @pytest.fixture
 def sample_config():
-    """Return a default ClodboxConfig."""
-    return ClodboxConfig()
+    """Return a default KanibakoConfig."""
+    return KanibakoConfig()
 
 
 @pytest.fixture

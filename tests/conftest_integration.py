@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from kanibako.config import ClodboxConfig, write_global_config
+from kanibako.config import KanibakoConfig, write_global_config
 
 # ---------------------------------------------------------------------------
 # Constants

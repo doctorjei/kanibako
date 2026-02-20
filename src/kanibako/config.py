@@ -27,7 +27,7 @@ _DEFAULTS = {
 
 
 @dataclass
-class ClodboxConfig:
+class KanibakoConfig:
     """Merged configuration (hardcoded defaults < kanibako.toml < project.toml < CLI)."""
 
     paths_relative_std_path: str = _DEFAULTS["paths_relative_std_path"]
@@ -53,9 +53,9 @@ def _flatten_toml(data: dict, prefix: str = "") -> dict[str, str]:
     return out
 
 
-def load_config(path: Path) -> ClodboxConfig:
-    """Read a single TOML file and return a ClodboxConfig with defaults filled in."""
-    cfg = ClodboxConfig()
+def load_config(path: Path) -> KanibakoConfig:
+    """Read a single TOML file and return a KanibakoConfig with defaults filled in."""
+    cfg = KanibakoConfig()
     if path.exists():
         with open(path, "rb") as f:
             data = tomllib.load(f)
@@ -72,7 +72,7 @@ def load_merged_config(
     project_path: Path | None = None,
     *,
     cli_overrides: dict[str, str] | None = None,
-) -> ClodboxConfig:
+) -> KanibakoConfig:
     """Load global config, overlay project config, then CLI overrides.
 
     Precedence: CLI flags > project.toml > kanibako.toml > hardcoded defaults.
@@ -81,7 +81,7 @@ def load_merged_config(
     if project_path and project_path.exists():
         proj = load_config(project_path)
         # Only override non-default values from project config.
-        defaults = ClodboxConfig()
+        defaults = KanibakoConfig()
         for fld in fields(proj):
             val = getattr(proj, fld.name)
             if val != getattr(defaults, fld.name):
@@ -94,13 +94,13 @@ def load_merged_config(
     return cfg
 
 
-def write_global_config(path: Path, cfg: ClodboxConfig | None = None) -> None:
+def write_global_config(path: Path, cfg: KanibakoConfig | None = None) -> None:
     """Write a TOML config file with the structured layout.
 
     If *cfg* is None, writes defaults.
     """
     if cfg is None:
-        cfg = ClodboxConfig()
+        cfg = KanibakoConfig()
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "[paths]",
@@ -153,18 +153,18 @@ def write_project_config(path: Path, image: str) -> None:
 # ---------------------------------------------------------------------------
 
 _RC_KEY_MAP = {
-    "KANIBAKO_RELATIVE_STD_PATH": "paths_relative_std_path",
-    "KANIBAKO_INIT_CREDENTIALS_PATH": "paths_init_credentials_path",
-    "KANIBAKO_PROJECTS_PATH": "paths_projects_path",
-    "KANIBAKO_DOT_PATH": "paths_dot_path",
-    "KANIBAKO_CFG_FILE": "paths_cfg_file",
-    "KANIBAKO_CONTAINER_IMAGE": "container_image",
+    "CLODBOX_RELATIVE_STD_PATH": "paths_relative_std_path",
+    "CLODBOX_INIT_CREDENTIALS_PATH": "paths_init_credentials_path",
+    "CLODBOX_PROJECTS_PATH": "paths_projects_path",
+    "CLODBOX_DOT_PATH": "paths_dot_path",
+    "CLODBOX_CFG_FILE": "paths_cfg_file",
+    "CLODBOX_CONTAINER_IMAGE": "container_image",
 }
 
 
-def migrate_rc(rc_path: Path, toml_path: Path) -> ClodboxConfig:
+def migrate_rc(rc_path: Path, toml_path: Path) -> KanibakoConfig:
     """Read legacy kanibako.rc, write equivalent kanibako.toml, rename .rc → .rc.bak."""
-    cfg = ClodboxConfig()
+    cfg = KanibakoConfig()
     text = rc_path.read_text()
     for line in text.splitlines():
         line = line.strip()

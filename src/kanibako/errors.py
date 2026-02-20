@@ -1,33 +1,33 @@
 """Kanibako error hierarchy."""
 
 
-class ClodboxError(Exception):
+class KanibakoError(Exception):
     """Base exception for all kanibako errors."""
 
 
-class ConfigError(ClodboxError):
+class ConfigError(KanibakoError):
     """Configuration file missing or malformed."""
 
 
-class ProjectError(ClodboxError):
+class ProjectError(KanibakoError):
     """Project path does not exist or cannot be resolved."""
 
 
-class ContainerError(ClodboxError):
+class ContainerError(KanibakoError):
     """Container runtime or image operation failed."""
 
 
-class ArchiveError(ClodboxError):
+class ArchiveError(KanibakoError):
     """Archive creation, extraction, or validation failed."""
 
 
-class GitError(ClodboxError):
+class GitError(KanibakoError):
     """Git check failed (uncommitted changes, unpushed commits, etc.)."""
 
 
-class CredentialError(ClodboxError):
+class CredentialError(KanibakoError):
     """Credential copy or merge failed."""
 
 
-class UserCancelled(ClodboxError):
+class UserCancelled(KanibakoError):
     """User cancelled an interactive prompt."""

@@ -53,5 +53,5 @@ RUN mkdir -p /home/agent/workspace /home/agent/.claude \
 WORKDIR /home/agent/workspace
 
 # Entrypoint is just claude — no flags baked in.
-# clodbox passes --dangerously-skip-permissions at runtime.
+# kanibako passes --dangerously-skip-permissions at runtime.
 ENTRYPOINT ["claude"]

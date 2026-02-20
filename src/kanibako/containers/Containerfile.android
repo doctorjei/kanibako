@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ghcr.io/doctorjei/clodbox-jvm:latest
+ARG BASE_IMAGE=ghcr.io/doctorjei/kanibako-jvm:latest
 FROM $BASE_IMAGE
 
 USER root
