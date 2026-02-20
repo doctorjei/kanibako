@@ -7,7 +7,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from kanibako.config import ClodboxConfig, load_config
+from kanibako.config import KanibakoConfig, load_config
 from kanibako.errors import ConfigError, ProjectError
 from kanibako.utils import project_hash
 
@@ -47,7 +47,7 @@ def _xdg(env_var: str, default_suffix: str) -> Path:
     return Path.home() / default_suffix
 
 
-def load_std_paths(config: ClodboxConfig | None = None) -> StandardPaths:
+def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
     """Compute all standard kanibako directories.
 
     If *config* is None, it is loaded from the config file (which must exist).
@@ -101,7 +101,7 @@ def load_std_paths(config: ClodboxConfig | None = None) -> StandardPaths:
 
 def resolve_project(
     std: StandardPaths,
-    config: ClodboxConfig,
+    config: KanibakoConfig,
     project_dir: str | None = None,
     *,
     initialize: bool = False,
@@ -181,7 +181,7 @@ def _init_project(
     print("done.", file=sys.stderr)
 
 
-def iter_projects(std: StandardPaths, config: ClodboxConfig) -> list[tuple[Path, Path | None]]:
+def iter_projects(std: StandardPaths, config: KanibakoConfig) -> list[tuple[Path, Path | None]]:
     """Return ``(settings_path, project_path | None)`` for every known project.
 
     *project_path* is read from the ``project-path.txt`` breadcrumb when

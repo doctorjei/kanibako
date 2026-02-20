@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from kanibako.config import ClodboxConfig, load_config, write_global_config
+from kanibako.config import KanibakoConfig, load_config, write_global_config
 from kanibako.errors import ConfigError, ProjectError
 from kanibako.paths import load_std_paths, resolve_project
 

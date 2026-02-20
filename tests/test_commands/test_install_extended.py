@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kanibako.config import ClodboxConfig, load_config, write_global_config
+from kanibako.config import KanibakoConfig, load_config, write_global_config
 
 
 class TestInstallExtended:
@@ -71,7 +71,7 @@ class TestInstallExtended:
         self._base_setup(tmp_home)
         config_file = tmp_home / "config" / "kanibako" / "kanibako.toml"
         config_file.parent.mkdir(parents=True, exist_ok=True)
-        custom_cfg = ClodboxConfig(container_image="custom:v1")
+        custom_cfg = KanibakoConfig(container_image="custom:v1")
         write_global_config(config_file, custom_cfg)
 
         with (
@@ -91,7 +91,7 @@ class TestInstallExtended:
         config_dir = tmp_home / "config" / "kanibako"
         config_dir.mkdir(parents=True, exist_ok=True)
         rc_file = config_dir / "kanibako.rc"
-        rc_file.write_text('KANIBAKO_CONTAINER_IMAGE="migrated:v1"\n')
+        rc_file.write_text('CLODBOX_CONTAINER_IMAGE="migrated:v1"\n')
 
         with (
             patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no")),
@@ -120,5 +120,5 @@ class TestInstallExtended:
         assert rc == 0
         assert config_file.exists()
         loaded = load_config(config_file)
-        assert loaded.container_image == ClodboxConfig().container_image
+        assert loaded.container_image == KanibakoConfig().container_image
 

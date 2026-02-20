@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ghcr.io/doctorjei/clodbox-android:latest
+ARG BASE_IMAGE=ghcr.io/doctorjei/kanibako-android:latest
 FROM $BASE_IMAGE
 
 USER root

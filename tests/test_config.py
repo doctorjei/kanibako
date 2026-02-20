@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from kanibako.config import (
-    ClodboxConfig,
+    KanibakoConfig,
     load_config,
     load_merged_config,
     migrate_rc,
@@ -24,7 +24,7 @@ class TestLoadConfig:
 
     def test_round_trip(self, tmp_path):
         path = tmp_path / "test.toml"
-        cfg = ClodboxConfig(container_image="custom:latest")
+        cfg = KanibakoConfig(container_image="custom:latest")
         write_global_config(path, cfg)
         loaded = load_config(path)
         assert loaded.container_image == "custom:latest"

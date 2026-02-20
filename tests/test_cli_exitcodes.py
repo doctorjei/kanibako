@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from kanibako.errors import ClodboxError, UserCancelled
+from kanibako.errors import KanibakoError, UserCancelled
 
 
 def _fake_xdg(*args, **kwargs):
@@ -44,7 +44,7 @@ class TestMainExitCodes:
         ):
             args = MagicMock()
             args.command = "start"
-            args.func.side_effect = ClodboxError("boom")
+            args.func.side_effect = KanibakoError("boom")
             mock_parser.return_value.parse_args.return_value = args
             main(["start"])
         assert exc_info.value.code == 1

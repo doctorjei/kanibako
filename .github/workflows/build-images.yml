@@ -37,7 +37,7 @@ jobs:
           context: containers/
           file: containers/Containerfile.base
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=base
           cache-to: type=gha,mode=max,scope=base
 
@@ -47,9 +47,9 @@ jobs:
           context: containers/
           file: containers/Containerfile.systems
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-systems:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-systems:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=systems
           cache-to: type=gha,mode=max,scope=systems
 
@@ -59,9 +59,9 @@ jobs:
           context: containers/
           file: containers/Containerfile.jvm
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-jvm:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-jvm:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=jvm
           cache-to: type=gha,mode=max,scope=jvm
 
@@ -71,9 +71,9 @@ jobs:
           context: containers/
           file: containers/Containerfile.android
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-android:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-android:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-jvm:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-jvm:latest
           cache-from: type=gha,scope=android
           cache-to: type=gha,mode=max,scope=android
 
@@ -83,9 +83,9 @@ jobs:
           context: containers/
           file: containers/Containerfile.ndk
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-ndk:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-ndk:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-android:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-android:latest
           cache-from: type=gha,scope=ndk
           cache-to: type=gha,mode=max,scope=ndk
 
@@ -95,9 +95,9 @@ jobs:
           context: containers/
           file: containers/Containerfile.dotnet
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-dotnet:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-dotnet:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=dotnet
           cache-to: type=gha,mode=max,scope=dotnet
 
@@ -107,8 +107,8 @@ jobs:
           context: containers/
           file: containers/Containerfile.behemoth
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-behemoth:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-behemoth:latest
           build-args: |
-            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/clodbox-base:latest
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/kanibako-base:latest
           cache-from: type=gha,scope=behemoth
           cache-to: type=gha,mode=max,scope=behemoth

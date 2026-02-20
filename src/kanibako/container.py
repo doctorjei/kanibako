@@ -77,7 +77,7 @@ class ContainerRuntime:
 
     @staticmethod
     def _detect() -> str:
-        env = os.environ.get("KANIBAKO_DOCKER_CMD")
+        env = os.environ.get("KANIBAKO_DOCKER_CMD") or os.environ.get("CLODBOX_DOCKER_CMD")
         if env:
             return env
         for name in ("podman", "docker"):
