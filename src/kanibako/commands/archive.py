@@ -189,5 +189,8 @@ def _stub_project(settings_path, phash, project_path, config):
         settings_path=settings_path,
         dot_path=settings_path / config.paths_dot_path,
         cfg_file=settings_path / config.paths_cfg_file,
+        shell_path=settings_path.parent.parent / "shell" / phash,
+        vault_ro_path=effective_path / "vault" / "share-ro",
+        vault_rw_path=effective_path / "vault" / "share-rw",
         is_new=False,
     )
