@@ -13,22 +13,22 @@ import tomllib
 
 
 # ---------------------------------------------------------------------------
-# Defaults (match the old clodbox.rc values)
+# Defaults (match the old kanibako.rc values)
 # ---------------------------------------------------------------------------
 
 _DEFAULTS = {
-    "paths_relative_std_path": "clodbox",
+    "paths_relative_std_path": "kanibako",
     "paths_init_credentials_path": "credentials",
     "paths_projects_path": "projects",
     "paths_dot_path": "dotclod",
     "paths_cfg_file": "dotclod.json",
-    "container_image": "ghcr.io/doctorjei/clodbox-base:latest",
+    "container_image": "ghcr.io/doctorjei/kanibako-base:latest",
 }
 
 
 @dataclass
 class ClodboxConfig:
-    """Merged configuration (hardcoded defaults < clodbox.toml < project.toml < CLI)."""
+    """Merged configuration (hardcoded defaults < kanibako.toml < project.toml < CLI)."""
 
     paths_relative_std_path: str = _DEFAULTS["paths_relative_std_path"]
     paths_init_credentials_path: str = _DEFAULTS["paths_init_credentials_path"]
@@ -75,7 +75,7 @@ def load_merged_config(
 ) -> ClodboxConfig:
     """Load global config, overlay project config, then CLI overrides.
 
-    Precedence: CLI flags > project.toml > clodbox.toml > hardcoded defaults.
+    Precedence: CLI flags > project.toml > kanibako.toml > hardcoded defaults.
     """
     cfg = load_config(global_path)
     if project_path and project_path.exists():
@@ -149,21 +149,21 @@ def write_project_config(path: Path, image: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Legacy .rc migration helpers (used by `clodbox install`)
+# Legacy .rc migration helpers (used by `kanibako install`)
 # ---------------------------------------------------------------------------
 
 _RC_KEY_MAP = {
-    "CLODBOX_RELATIVE_STD_PATH": "paths_relative_std_path",
-    "CLODBOX_INIT_CREDENTIALS_PATH": "paths_init_credentials_path",
-    "CLODBOX_PROJECTS_PATH": "paths_projects_path",
-    "CLODBOX_DOT_PATH": "paths_dot_path",
-    "CLODBOX_CFG_FILE": "paths_cfg_file",
-    "CLODBOX_CONTAINER_IMAGE": "container_image",
+    "KANIBAKO_RELATIVE_STD_PATH": "paths_relative_std_path",
+    "KANIBAKO_INIT_CREDENTIALS_PATH": "paths_init_credentials_path",
+    "KANIBAKO_PROJECTS_PATH": "paths_projects_path",
+    "KANIBAKO_DOT_PATH": "paths_dot_path",
+    "KANIBAKO_CFG_FILE": "paths_cfg_file",
+    "KANIBAKO_CONTAINER_IMAGE": "container_image",
 }
 
 
 def migrate_rc(rc_path: Path, toml_path: Path) -> ClodboxConfig:
-    """Read legacy clodbox.rc, write equivalent clodbox.toml, rename .rc → .rc.bak."""
+    """Read legacy kanibako.rc, write equivalent kanibako.toml, rename .rc → .rc.bak."""
     cfg = ClodboxConfig()
     text = rc_path.read_text()
     for line in text.splitlines():

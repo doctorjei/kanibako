@@ -7,14 +7,14 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from clodbox.config import ClodboxConfig, load_config
-from clodbox.errors import ConfigError, ProjectError
-from clodbox.utils import project_hash
+from kanibako.config import ClodboxConfig, load_config
+from kanibako.errors import ConfigError, ProjectError
+from kanibako.utils import project_hash
 
 
 @dataclass
 class StandardPaths:
-    """Resolved XDG and clodbox standard directory paths."""
+    """Resolved XDG and kanibako standard directory paths."""
 
     config_home: Path
     data_home: Path
@@ -48,7 +48,7 @@ def _xdg(env_var: str, default_suffix: str) -> Path:
 
 
 def load_std_paths(config: ClodboxConfig | None = None) -> StandardPaths:
-    """Compute all standard clodbox directories.
+    """Compute all standard kanibako directories.
 
     If *config* is None, it is loaded from the config file (which must exist).
     Directories are created as needed.
@@ -58,19 +58,19 @@ def load_std_paths(config: ClodboxConfig | None = None) -> StandardPaths:
     state_home = _xdg("XDG_STATE_HOME", ".local/state")
     cache_home = _xdg("XDG_CACHE_HOME", ".cache")
 
-    config_file = config_home / "clodbox" / "clodbox.toml"
+    config_file = config_home / "kanibako" / "kanibako.toml"
 
     if config is None:
         if not config_file.exists():
             # Check for legacy .rc file
-            legacy = config_file.with_name("clodbox.rc")
+            legacy = config_file.with_name("kanibako.rc")
             if legacy.exists():
                 raise ConfigError(
-                    f"Legacy config {legacy} found but no clodbox.toml. "
-                    "Run 'clodbox setup' to migrate."
+                    f"Legacy config {legacy} found but no kanibako.toml. "
+                    "Run 'kanibako setup' to migrate."
                 )
             raise ConfigError(
-                f"{config_file} is missing. Run 'clodbox setup' to set up."
+                f"{config_file} is missing. Run 'kanibako setup' to set up."
             )
         config = load_config(config_file)
 
@@ -160,7 +160,7 @@ def _init_project(
     import sys
 
     print(
-        f"[One Time Setup] Initializing clodbox in {project_path}... ",
+        f"[One Time Setup] Initializing kanibako in {project_path}... ",
         end="",
         flush=True,
         file=sys.stderr,

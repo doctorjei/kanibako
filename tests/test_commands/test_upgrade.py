@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.upgrade."""
+"""Tests for kanibako.commands.upgrade."""
 
 from __future__ import annotations
 
@@ -8,23 +8,23 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from clodbox.commands.upgrade import run, _get_repo_dir
+from kanibako.commands.upgrade import run, _get_repo_dir
 
 
 class TestGetRepoDir:
     def test_finds_repo(self):
-        # The actual clodbox repo should be found
+        # The actual kanibako repo should be found
         repo = _get_repo_dir()
         assert repo is not None
         assert (repo / ".git").is_dir()
-        assert (repo / "src" / "clodbox").is_dir()
+        assert (repo / "src" / "kanibako").is_dir()
 
 
 class TestUpgrade:
     def test_check_up_to_date(self, capsys):
         with (
-            patch("clodbox.commands.upgrade._get_repo_dir") as m_repo,
-            patch("clodbox.commands.upgrade._git") as m_git,
+            patch("kanibako.commands.upgrade._get_repo_dir") as m_repo,
+            patch("kanibako.commands.upgrade._git") as m_git,
         ):
             m_repo.return_value = Path("/fake/repo")
 
@@ -53,8 +53,8 @@ class TestUpgrade:
 
     def test_check_updates_available(self, capsys):
         with (
-            patch("clodbox.commands.upgrade._get_repo_dir") as m_repo,
-            patch("clodbox.commands.upgrade._git") as m_git,
+            patch("kanibako.commands.upgrade._get_repo_dir") as m_repo,
+            patch("kanibako.commands.upgrade._git") as m_git,
         ):
             m_repo.return_value = Path("/fake/repo")
 
@@ -89,8 +89,8 @@ class TestUpgrade:
 
     def test_check_only_no_pull(self, capsys):
         with (
-            patch("clodbox.commands.upgrade._get_repo_dir") as m_repo,
-            patch("clodbox.commands.upgrade._git") as m_git,
+            patch("kanibako.commands.upgrade._get_repo_dir") as m_repo,
+            patch("kanibako.commands.upgrade._git") as m_git,
         ):
             m_repo.return_value = Path("/fake/repo")
             calls = []
@@ -121,7 +121,7 @@ class TestUpgrade:
             assert "pull" not in calls
 
     def test_no_repo_found(self, capsys):
-        with patch("clodbox.commands.upgrade._get_repo_dir", return_value=None):
+        with patch("kanibako.commands.upgrade._get_repo_dir", return_value=None):
             args = argparse.Namespace(check=False)
             rc = run(args)
             assert rc == 1
@@ -130,8 +130,8 @@ class TestUpgrade:
 
     def test_uncommitted_changes_blocks_upgrade(self, capsys):
         with (
-            patch("clodbox.commands.upgrade._get_repo_dir") as m_repo,
-            patch("clodbox.commands.upgrade._git") as m_git,
+            patch("kanibako.commands.upgrade._get_repo_dir") as m_repo,
+            patch("kanibako.commands.upgrade._git") as m_git,
         ):
             m_repo.return_value = Path("/fake/repo")
 

@@ -1,4 +1,4 @@
-"""clodbox image: list built-in/local/remote container images."""
+"""kanibako image: list built-in/local/remote container images."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-from clodbox.config import load_config, load_merged_config
-from clodbox.container import ContainerRuntime
-from clodbox.containerfiles import get_containerfile, list_containerfile_suffixes
-from clodbox.errors import ContainerError
-from clodbox.paths import _xdg, load_std_paths, resolve_project
+from kanibako.config import load_config, load_merged_config
+from kanibako.container import ContainerRuntime
+from kanibako.containerfiles import get_containerfile, list_containerfile_suffixes
+from kanibako.errors import ContainerError
+from kanibako.paths import _xdg, load_std_paths, resolve_project
 
 
 # Descriptions for known Containerfile variants.
@@ -36,7 +36,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     image_sub = p.add_subparsers(dest="image_command", metavar="COMMAND")
 
-    # clodbox image list (default behavior)
+    # kanibako image list (default behavior)
     list_p = image_sub.add_parser(
         "list",
         help="List available container images (default)",
@@ -47,7 +47,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     list_p.set_defaults(func=run_list)
 
-    # clodbox image rebuild
+    # kanibako image rebuild
     rebuild_p = image_sub.add_parser(
         "rebuild",
         help="Update container image(s) from registry (or rebuild locally)",
@@ -62,7 +62,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     rebuild_p.add_argument(
         "--all", action="store_true", dest="all_images",
-        help="Update all local clodbox images",
+        help="Update all local kanibako images",
     )
     rebuild_p.add_argument(
         "--local", action="store_true", dest="local_build",
@@ -75,7 +75,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_list(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)
@@ -140,28 +140,28 @@ def _extract_ghcr_owner(image: str) -> str | None:
 
 
 def _list_remote_packages(owner: str) -> None:
-    """Query GitHub API for the owner's clodbox container packages."""
+    """Query GitHub API for the owner's kanibako container packages."""
     url = f"https://api.github.com/users/{owner}/packages?package_type=container"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "clodbox"})
+        req = urllib.request.Request(url, headers={"User-Agent": "kanibako"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         print("  (could not reach GitHub API)")
         return
 
-    packages = [pkg["name"] for pkg in data if "clodbox" in pkg.get("name", "").lower()]
+    packages = [pkg["name"] for pkg in data if "kanibako" in pkg.get("name", "").lower()]
     if packages:
         for pkg in packages:
             print(f"  ghcr.io/{owner}/{pkg}")
     else:
-        print(f"  (no clodbox packages found for {owner})")
+        print(f"  (no kanibako packages found for {owner})")
 
 
 def _extract_registry_prefix(image: str) -> str | None:
     """Extract ``registry/owner`` prefix from a fully qualified image name.
 
-    >>> _extract_registry_prefix("ghcr.io/doctorjei/clodbox-base:latest")
+    >>> _extract_registry_prefix("ghcr.io/doctorjei/kanibako-base:latest")
     'ghcr.io/doctorjei'
     """
     # Expect at least registry/owner/name
@@ -171,7 +171,7 @@ def _extract_registry_prefix(image: str) -> str | None:
     return None
 
 
-# Known shorthand suffixes that map to clodbox-<suffix> images.
+# Known shorthand suffixes that map to kanibako-<suffix> images.
 _KNOWN_SUFFIXES = {"base", "systems", "jvm", "android", "ndk", "dotnet", "behemoth"}
 
 
@@ -180,8 +180,8 @@ def resolve_image_name(name: str, configured_image: str) -> str:
 
     - If *name* contains ``/``, it is already qualified — returned as-is.
     - If *name* is a known suffix (``base``, ``systems``, …), expand to
-      ``{prefix}/clodbox-{name}:latest``.
-    - If *name* starts with ``clodbox-``, expand to ``{prefix}/{name}:latest``.
+      ``{prefix}/kanibako-{name}:latest``.
+    - If *name* starts with ``kanibako-``, expand to ``{prefix}/{name}:latest``.
     - Otherwise return *name* unchanged.
     """
     if "/" in name:
@@ -192,9 +192,9 @@ def resolve_image_name(name: str, configured_image: str) -> str:
         return name
 
     if name in _KNOWN_SUFFIXES:
-        return f"{prefix}/clodbox-{name}:latest"
+        return f"{prefix}/kanibako-{name}:latest"
 
-    if name.startswith("clodbox-"):
+    if name.startswith("kanibako-"):
         return f"{prefix}/{name}:latest"
 
     return name
@@ -202,7 +202,7 @@ def resolve_image_name(name: str, configured_image: str) -> str:
 
 def run_rebuild(args: argparse.Namespace) -> int:
     """Update container image(s): pull from registry (default) or build locally."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     containers_dir = std.data_path / "containers"
@@ -217,7 +217,7 @@ def run_rebuild(args: argparse.Namespace) -> int:
 
     if local_build and not containers_dir.is_dir():
         print(f"Error: containers directory not found: {containers_dir}", file=sys.stderr)
-        print("Run 'clodbox setup' first.", file=sys.stderr)
+        print("Run 'kanibako setup' first.", file=sys.stderr)
         return 1
 
     if args.all_images:
@@ -257,9 +257,9 @@ def _build_one(runtime: ContainerRuntime, image: str, containers_dir: Path) -> i
             f"{p} -> Containerfile.{s}"
             for p, s in sorted(set(
                 (p, runtime.guess_containerfile(p))
-                for p in ["clodbox-base", "clodbox-systems", "clodbox-jvm",
-                          "clodbox-android", "clodbox-ndk", "clodbox-dotnet",
-                          "clodbox-behemoth"]
+                for p in ["kanibako-base", "kanibako-systems", "kanibako-jvm",
+                          "kanibako-android", "kanibako-ndk", "kanibako-dotnet",
+                          "kanibako-behemoth"]
             ))
         ), file=sys.stderr)
         return 1
@@ -293,10 +293,10 @@ def _update_one(
 def _update_all(
     runtime: ContainerRuntime, containers_dir: Path, *, local_build: bool
 ) -> int:
-    """Update all local clodbox images."""
+    """Update all local kanibako images."""
     images = runtime.list_local_images()
     if not images:
-        print("No local clodbox images to update.")
+        print("No local kanibako images to update.")
         return 0
 
     failed = 0

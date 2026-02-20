@@ -21,7 +21,7 @@ def get_containerfile(suffix: str, data_containers_dir: Path | None = None) -> P
             return override
 
     # 2. Bundled
-    bundled = importlib.resources.files("clodbox.containers").joinpath(name)
+    bundled = importlib.resources.files("kanibako.containers").joinpath(name)
     try:
         # as_posix on a Traversable; for installed packages this is a real path
         path = Path(str(bundled))
@@ -42,7 +42,7 @@ def list_containerfile_suffixes(data_containers_dir: Path | None = None) -> list
 
     # Bundled
     try:
-        pkg = importlib.resources.files("clodbox.containers")
+        pkg = importlib.resources.files("kanibako.containers")
         for item in pkg.iterdir():
             name = item.name if hasattr(item, "name") else str(item).rsplit("/", 1)[-1]
             if name.startswith("Containerfile."):

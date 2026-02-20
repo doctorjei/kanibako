@@ -1,4 +1,4 @@
-"""Shared fixtures for clodbox tests."""
+"""Shared fixtures for kanibako tests."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.config import ClodboxConfig, write_global_config
+from kanibako.config import ClodboxConfig, write_global_config
 
 
 @pytest.fixture
@@ -44,9 +44,9 @@ def tmp_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def config_file(tmp_home):
-    """Write a default clodbox.toml and return its path."""
+    """Write a default kanibako.toml and return its path."""
     config_home = tmp_home / "config"
-    cf = config_home / "clodbox" / "clodbox.toml"
+    cf = config_home / "kanibako" / "kanibako.toml"
     write_global_config(cf)
     return cf
 
@@ -60,7 +60,7 @@ def sample_config():
 @pytest.fixture
 def credentials_dir(tmp_home, config_file):
     """Create a minimal credential store and return the data path."""
-    from clodbox.config import load_config
+    from kanibako.config import load_config
     config = load_config(config_file)
     data_home = tmp_home / "data"
     data_path = data_home / config.paths_relative_std_path
@@ -133,8 +133,8 @@ def corrupt_credentials(tmp_home):
 @pytest.fixture
 def project_env(config_file, credentials_dir, tmp_home):
     """Combines config + credentials + resolve_project into a single namespace."""
-    from clodbox.config import load_config
-    from clodbox.paths import load_std_paths, resolve_project
+    from kanibako.config import load_config
+    from kanibako.paths import load_std_paths, resolve_project
 
     config = load_config(config_file)
     std = load_std_paths(config)
@@ -165,15 +165,15 @@ def start_mocks():
     @contextmanager
     def _make():
         with (
-            patch("clodbox.commands.start.load_config") as m_load_config,
-            patch("clodbox.commands.start.load_std_paths") as m_load_std,
-            patch("clodbox.commands.start.resolve_project") as m_resolve,
-            patch("clodbox.commands.start.load_merged_config") as m_merged,
-            patch("clodbox.commands.start.ContainerRuntime") as m_rt_cls,
-            patch("clodbox.commands.start.refresh_host_to_central") as m_h2c,
-            patch("clodbox.commands.start.refresh_central_to_project") as m_c2p,
-            patch("clodbox.commands.start.writeback_project_to_central_and_host") as m_wb,
-            patch("clodbox.commands.start.fcntl") as m_fcntl,
+            patch("kanibako.commands.start.load_config") as m_load_config,
+            patch("kanibako.commands.start.load_std_paths") as m_load_std,
+            patch("kanibako.commands.start.resolve_project") as m_resolve,
+            patch("kanibako.commands.start.load_merged_config") as m_merged,
+            patch("kanibako.commands.start.ContainerRuntime") as m_rt_cls,
+            patch("kanibako.commands.start.refresh_host_to_central") as m_h2c,
+            patch("kanibako.commands.start.refresh_central_to_project") as m_c2p,
+            patch("kanibako.commands.start.writeback_project_to_central_and_host") as m_wb,
+            patch("kanibako.commands.start.fcntl") as m_fcntl,
             patch("builtins.open", MagicMock()) as m_open,
         ):
             proj = MagicMock()

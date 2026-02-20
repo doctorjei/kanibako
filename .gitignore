@@ -1,1 +1,3 @@
 devnotes.md
+__pycache__/
+*.egg-info/

@@ -7,8 +7,8 @@ import sys
 import time
 from pathlib import Path
 
-from clodbox.container import ContainerRuntime
-from clodbox.registry import get_remote_digest
+from kanibako.container import ContainerRuntime
+from kanibako.registry import get_remote_digest
 
 _CACHE_TTL = 86400  # 24 hours
 
@@ -37,7 +37,7 @@ def _check(runtime: ContainerRuntime, image: str, cache_path: Path) -> None:
     if local_digest != remote_digest:
         print(
             f"Note: A newer version of {image} is available. "
-            f"Run 'clodbox image rebuild' to update.",
+            f"Run 'kanibako image rebuild' to update.",
             file=sys.stderr,
         )
 

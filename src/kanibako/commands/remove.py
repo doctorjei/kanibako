@@ -1,4 +1,4 @@
-"""clodbox remove: teardown environment (config, cron; keep data)."""
+"""kanibako remove: teardown environment (config, cron; keep data)."""
 
 from __future__ import annotations
 
@@ -8,28 +8,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-from clodbox.config import load_config
-from clodbox.paths import _xdg
-from clodbox.utils import confirm_prompt
+from kanibako.config import load_config
+from kanibako.paths import _xdg
+from kanibako.utils import confirm_prompt
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "remove",
-        help="Remove clodbox configuration and cron job (keeps project data)",
-        description="Remove clodbox configuration and cron job. "
-        "Project data is preserved. Use 'pip uninstall clodbox' to remove the package.",
+        help="Remove kanibako configuration and cron job (keeps project data)",
+        description="Remove kanibako configuration and cron job. "
+        "Project data is preserved. Use 'pip uninstall kanibako' to remove the package.",
     )
     p.set_defaults(func=run)
 
 
 def run(args: argparse.Namespace) -> int:
     config_home = _xdg("XDG_CONFIG_HOME", ".config")
-    config_file = config_home / "clodbox" / "clodbox.toml"
+    config_file = config_home / "kanibako" / "kanibako.toml"
     config_dir = config_file.parent
 
     # Load config to determine data path before deleting
-    rel_std_path = "clodbox"
+    rel_std_path = "kanibako"
     if config_file.exists():
         try:
             config = load_config(config_file)
@@ -53,7 +53,7 @@ def run(args: argparse.Namespace) -> int:
     if config_file.exists():
         config_file.unlink()
     # Also remove legacy .rc if present
-    legacy = config_file.with_name("clodbox.rc")
+    legacy = config_file.with_name("kanibako.rc")
     if legacy.exists():
         legacy.unlink()
     # Try to remove empty config dir
@@ -77,12 +77,12 @@ def run(args: argparse.Namespace) -> int:
     print(f"Note: Project and credential data remain in {data_path}")
     print(f"To delete, run:  rm -rf {data_path}")
     print()
-    print("To remove the clodbox package:  pip uninstall clodbox")
+    print("To remove the kanibako package:  pip uninstall kanibako")
     return 0
 
 
 def _remove_cron() -> None:
-    """Remove clodbox entries from crontab."""
+    """Remove kanibako entries from crontab."""
     try:
         result = subprocess.run(
             ["crontab", "-l"], capture_output=True, text=True
@@ -93,7 +93,7 @@ def _remove_cron() -> None:
     except FileNotFoundError:
         return
 
-    lines = [l for l in existing.splitlines() if "clodbox" not in l.lower() or "refresh-creds" not in l]
+    lines = [l for l in existing.splitlines() if "kanibako" not in l.lower() or "refresh-creds" not in l]
     if not lines:
         # Empty crontab
         subprocess.run(["crontab", "-r"], capture_output=True)

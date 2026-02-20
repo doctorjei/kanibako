@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.credentials: malformed files, writeback, filter edge cases."""
+"""Extended tests for kanibako.credentials: malformed files, writeback, filter edge cases."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.credentials import (
+from kanibako.credentials import (
     filter_settings,
     refresh_central_to_project,
     writeback_project_to_central_and_host,

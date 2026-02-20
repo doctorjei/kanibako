@@ -1,16 +1,16 @@
-"""Tests for clodbox.cli."""
+"""Tests for kanibako.cli."""
 
 from __future__ import annotations
 
 import pytest
 
-from clodbox.cli import build_parser
+from kanibako.cli import build_parser
 
 
 class TestParser:
     def test_version(self, capsys):
-        from clodbox import __version__
-        from clodbox.cli import main
+        from kanibako import __version__
+        from kanibako.cli import main
 
         with pytest.raises(SystemExit) as exc_info:
             main(["--version"])
@@ -199,8 +199,8 @@ class TestParser:
 
     def test_image_rebuild_specific(self):
         parser = build_parser()
-        args = parser.parse_args(["image", "rebuild", "clodbox-base:latest"])
-        assert args.image == "clodbox-base:latest"
+        args = parser.parse_args(["image", "rebuild", "kanibako-base:latest"])
+        assert args.image == "kanibako-base:latest"
 
     def test_image_rebuild_all(self):
         parser = build_parser()

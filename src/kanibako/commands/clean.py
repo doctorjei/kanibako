@@ -1,4 +1,4 @@
-"""clodbox purge: remove project session data."""
+"""kanibako purge: remove project session data."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import argparse
 import shutil
 import sys
 
-from clodbox.config import load_config
-from clodbox.errors import UserCancelled
-from clodbox.paths import load_std_paths, resolve_project
-from clodbox.utils import confirm_prompt, short_hash
+from kanibako.config import load_config
+from kanibako.errors import UserCancelled
+from kanibako.paths import load_std_paths, resolve_project
+from kanibako.utils import confirm_prompt, short_hash
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -30,8 +30,8 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    from clodbox.paths import _xdg
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    from kanibako.paths import _xdg
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -76,7 +76,7 @@ def _purge_one(std, config, path: str, *, force: bool) -> int:
 
 def _purge_all(std, config, *, force: bool) -> int:
     """Purge session data for all known projects."""
-    from clodbox.paths import iter_projects
+    from kanibako.paths import iter_projects
 
     projects = iter_projects(std, config)
     if not projects:

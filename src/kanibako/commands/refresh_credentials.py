@@ -1,4 +1,4 @@
-"""clodbox refresh-credentials: cron job to sync host creds to central store."""
+"""kanibako refresh-credentials: cron job to sync host creds to central store."""
 
 from __future__ import annotations
 
@@ -6,24 +6,24 @@ import argparse
 import sys
 from pathlib import Path
 
-from clodbox.config import load_config
-from clodbox.credentials import refresh_host_to_central
-from clodbox.errors import ConfigError
-from clodbox.paths import _xdg
+from kanibako.config import load_config
+from kanibako.credentials import refresh_host_to_central
+from kanibako.errors import ConfigError
+from kanibako.paths import _xdg
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "refresh-creds",
         help="Sync host credentials to central store",
-        description="Refresh the clodbox central credential store from host credentials. "
+        description="Refresh the kanibako central credential store from host credentials. "
         "Intended to be run via cron.",
     )
     p.set_defaults(func=run)
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     if not config_file.exists():
         print(
             f"Error: [{config_file}] is missing. Reinstall to fix.",

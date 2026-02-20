@@ -9,8 +9,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from clodbox.containerfiles import get_containerfile
-from clodbox.errors import ContainerError
+from kanibako.containerfiles import get_containerfile
+from kanibako.errors import ContainerError
 
 
 @dataclass
@@ -55,14 +55,14 @@ def detect_claude_install() -> ClaudeInstall | None:
 
 # Map image name patterns to Containerfile suffixes.
 _IMAGE_CONTAINERFILE_MAP = {
-    "clodbox-base": "base",
-    "clodbox:latest": "base",
-    "clodbox-systems": "systems",
-    "clodbox-jvm": "jvm",
-    "clodbox-android": "android",
-    "clodbox-ndk": "ndk",
-    "clodbox-dotnet": "dotnet",
-    "clodbox-behemoth": "behemoth",
+    "kanibako-base": "base",
+    "kanibako:latest": "base",
+    "kanibako-systems": "systems",
+    "kanibako-jvm": "jvm",
+    "kanibako-android": "android",
+    "kanibako-ndk": "ndk",
+    "kanibako-dotnet": "dotnet",
+    "kanibako-behemoth": "behemoth",
 }
 
 
@@ -77,7 +77,7 @@ class ContainerRuntime:
 
     @staticmethod
     def _detect() -> str:
-        env = os.environ.get("CLODBOX_DOCKER_CMD")
+        env = os.environ.get("KANIBAKO_DOCKER_CMD")
         if env:
             return env
         for name in ("podman", "docker"):
@@ -218,7 +218,7 @@ class ContainerRuntime:
         )
         return result.returncode == 0
 
-    def list_running(self, prefix: str = "clodbox-") -> list[tuple[str, str, str]]:
+    def list_running(self, prefix: str = "kanibako-") -> list[tuple[str, str, str]]:
         """Return running containers matching *prefix* as (name, image, status) tuples."""
         result = subprocess.run(
             [
@@ -271,7 +271,7 @@ class ContainerRuntime:
     # ------------------------------------------------------------------
 
     def list_local_images(self) -> list[tuple[str, str]]:
-        """Return local clodbox images as (repo:tag, size) tuples."""
+        """Return local kanibako images as (repo:tag, size) tuples."""
         result = subprocess.run(
             [self.cmd, "images", "--format", "{{.Repository}}:{{.Tag}}\t{{.Size}}"],
             capture_output=True,
@@ -279,7 +279,7 @@ class ContainerRuntime:
         )
         images: list[tuple[str, str]] = []
         for line in result.stdout.splitlines():
-            if "clodbox" in line.lower():
+            if "kanibako" in line.lower():
                 parts = line.split("\t", 1)
                 repo = parts[0]
                 size = parts[1] if len(parts) > 1 else ""

@@ -1,4 +1,4 @@
-"""Tests for clodbox.credentials."""
+"""Tests for kanibako.credentials."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.credentials import (
+from kanibako.credentials import (
     filter_settings,
     refresh_central_to_project,
     refresh_host_to_central,

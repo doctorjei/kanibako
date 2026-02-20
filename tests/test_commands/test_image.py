@@ -1,4 +1,4 @@
-"""Tests for clodbox.commands.image."""
+"""Tests for kanibako.commands.image."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ import argparse
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestImage:
     def test_runs_without_error(self, config_file, tmp_home, credentials_dir, capsys):
         """Smoke test: image list runs without crashing."""
-        from clodbox.commands.image import run_list
+        from kanibako.commands.image import run_list
 
         config = load_config(config_file)
         std = load_std_paths(config)
@@ -32,15 +32,15 @@ class TestImageRebuild:
     def test_pull_one_success(self, tmp_home, config_file, credentials_dir, capsys):
         """Default rebuild pulls from registry."""
         from unittest.mock import MagicMock, patch
-        from clodbox.commands.image import run_rebuild
+        from kanibako.commands.image import run_rebuild
 
-        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+        with patch("kanibako.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
             runtime.pull.return_value = True
             MockRT.return_value = runtime
 
             args = argparse.Namespace(
-                image="ghcr.io/foo/clodbox-base:latest",
+                image="ghcr.io/foo/kanibako-base:latest",
                 all_images=False, local_build=False,
             )
             rc = run_rebuild(args)
@@ -51,24 +51,24 @@ class TestImageRebuild:
     def test_local_build_one_success(self, tmp_home, config_file, credentials_dir, capsys):
         """--local flag triggers local build from Containerfile."""
         from unittest.mock import MagicMock, patch
-        from clodbox.commands.image import run_rebuild
+        from kanibako.commands.image import run_rebuild
 
-        from clodbox.config import load_config
-        from clodbox.paths import load_std_paths
+        from kanibako.config import load_config
+        from kanibako.paths import load_std_paths
         config = load_config(config_file)
         std = load_std_paths(config)
         containers_dir = std.data_path / "containers"
         containers_dir.mkdir(parents=True, exist_ok=True)
         (containers_dir / "Containerfile.base").write_text("FROM ubuntu\n")
 
-        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+        with patch("kanibako.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
             runtime.guess_containerfile.return_value = "base"
             runtime.rebuild.return_value = 0
             MockRT.return_value = runtime
 
             args = argparse.Namespace(
-                image="clodbox-base:latest",
+                image="kanibako-base:latest",
                 all_images=False, local_build=True,
             )
             rc = run_rebuild(args)
@@ -78,16 +78,16 @@ class TestImageRebuild:
     def test_local_build_unknown_image(self, tmp_home, config_file, credentials_dir, capsys):
         """--local with unknown image pattern errors."""
         from unittest.mock import MagicMock, patch
-        from clodbox.commands.image import run_rebuild
+        from kanibako.commands.image import run_rebuild
 
-        from clodbox.config import load_config
-        from clodbox.paths import load_std_paths
+        from kanibako.config import load_config
+        from kanibako.paths import load_std_paths
         config = load_config(config_file)
         std = load_std_paths(config)
         containers_dir = std.data_path / "containers"
         containers_dir.mkdir(parents=True, exist_ok=True)
 
-        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+        with patch("kanibako.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
             runtime.guess_containerfile.return_value = None
             MockRT.return_value = runtime
@@ -104,13 +104,13 @@ class TestImageRebuild:
     def test_pull_all(self, tmp_home, config_file, credentials_dir, capsys):
         """Default --all pulls all local images from registry."""
         from unittest.mock import MagicMock, patch
-        from clodbox.commands.image import run_rebuild
+        from kanibako.commands.image import run_rebuild
 
-        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+        with patch("kanibako.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
             runtime.list_local_images.return_value = [
-                ("ghcr.io/foo/clodbox-base:latest", "1GB"),
-                ("ghcr.io/foo/clodbox-jvm:latest", "2GB"),
+                ("ghcr.io/foo/kanibako-base:latest", "1GB"),
+                ("ghcr.io/foo/kanibako-jvm:latest", "2GB"),
             ]
             runtime.pull.return_value = True
             MockRT.return_value = runtime
@@ -125,56 +125,56 @@ class TestImageRebuild:
 
 class TestExtractGhcrOwner:
     def test_valid_ghcr_url(self):
-        from clodbox.commands.image import _extract_ghcr_owner
+        from kanibako.commands.image import _extract_ghcr_owner
 
-        assert _extract_ghcr_owner("ghcr.io/doctorjei/clodbox-base:latest") == "doctorjei"
+        assert _extract_ghcr_owner("ghcr.io/doctorjei/kanibako-base:latest") == "doctorjei"
 
     def test_non_ghcr_url(self):
-        from clodbox.commands.image import _extract_ghcr_owner
+        from kanibako.commands.image import _extract_ghcr_owner
 
         assert _extract_ghcr_owner("docker.io/library/ubuntu:latest") is None
 
 
 class TestResolveImageName:
     def test_suffix_expansion(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
-        result = resolve_image_name("base", "ghcr.io/doctorjei/clodbox-base:latest")
-        assert result == "ghcr.io/doctorjei/clodbox-base:latest"
+        result = resolve_image_name("base", "ghcr.io/doctorjei/kanibako-base:latest")
+        assert result == "ghcr.io/doctorjei/kanibako-base:latest"
 
     def test_suffix_systems(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
-        result = resolve_image_name("systems", "ghcr.io/doctorjei/clodbox-base:latest")
-        assert result == "ghcr.io/doctorjei/clodbox-systems:latest"
+        result = resolve_image_name("systems", "ghcr.io/doctorjei/kanibako-base:latest")
+        assert result == "ghcr.io/doctorjei/kanibako-systems:latest"
 
-    def test_clodbox_prefix_expansion(self):
-        from clodbox.commands.image import resolve_image_name
+    def test_kanibako_prefix_expansion(self):
+        from kanibako.commands.image import resolve_image_name
 
-        result = resolve_image_name("clodbox-custom", "ghcr.io/doctorjei/clodbox-base:latest")
-        assert result == "ghcr.io/doctorjei/clodbox-custom:latest"
+        result = resolve_image_name("kanibako-custom", "ghcr.io/doctorjei/kanibako-base:latest")
+        assert result == "ghcr.io/doctorjei/kanibako-custom:latest"
 
     def test_full_path_passthrough(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
-        full = "ghcr.io/other/clodbox-base:v2"
-        result = resolve_image_name(full, "ghcr.io/doctorjei/clodbox-base:latest")
+        full = "ghcr.io/other/kanibako-base:v2"
+        result = resolve_image_name(full, "ghcr.io/doctorjei/kanibako-base:latest")
         assert result == full
 
     def test_unknown_name_passthrough(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
-        result = resolve_image_name("ubuntu", "ghcr.io/doctorjei/clodbox-base:latest")
+        result = resolve_image_name("ubuntu", "ghcr.io/doctorjei/kanibako-base:latest")
         assert result == "ubuntu"
 
     def test_prefix_derived_from_configured(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
-        result = resolve_image_name("jvm", "ghcr.io/myowner/clodbox-base:latest")
-        assert result == "ghcr.io/myowner/clodbox-jvm:latest"
+        result = resolve_image_name("jvm", "ghcr.io/myowner/kanibako-base:latest")
+        assert result == "ghcr.io/myowner/kanibako-jvm:latest"
 
     def test_no_prefix_extractable(self):
-        from clodbox.commands.image import resolve_image_name
+        from kanibako.commands.image import resolve_image_name
 
         result = resolve_image_name("base", "localimage:latest")
         assert result == "base"
@@ -182,17 +182,17 @@ class TestResolveImageName:
 
 class TestExtractRegistryPrefix:
     def test_ghcr(self):
-        from clodbox.commands.image import _extract_registry_prefix
+        from kanibako.commands.image import _extract_registry_prefix
 
-        assert _extract_registry_prefix("ghcr.io/doctorjei/clodbox-base:latest") == "ghcr.io/doctorjei"
+        assert _extract_registry_prefix("ghcr.io/doctorjei/kanibako-base:latest") == "ghcr.io/doctorjei"
 
     def test_two_parts_returns_none(self):
-        from clodbox.commands.image import _extract_registry_prefix
+        from kanibako.commands.image import _extract_registry_prefix
 
         assert _extract_registry_prefix("library/ubuntu:latest") is None
 
     def test_single_part_returns_none(self):
-        from clodbox.commands.image import _extract_registry_prefix
+        from kanibako.commands.image import _extract_registry_prefix
 
         assert _extract_registry_prefix("ubuntu:latest") is None
 
@@ -201,9 +201,9 @@ class TestRebuildWithShorthand:
     def test_shorthand_resolved_in_rebuild(self, tmp_home, config_file, credentials_dir, capsys):
         """Shorthand name gets resolved to full image in rebuild."""
         from unittest.mock import MagicMock, patch
-        from clodbox.commands.image import run_rebuild
+        from kanibako.commands.image import run_rebuild
 
-        with patch("clodbox.commands.image.ContainerRuntime") as MockRT:
+        with patch("kanibako.commands.image.ContainerRuntime") as MockRT:
             runtime = MagicMock()
             runtime.pull.return_value = True
             MockRT.return_value = runtime
@@ -216,5 +216,5 @@ class TestRebuildWithShorthand:
             assert rc == 0
             # Should have resolved "systems" to the full image path
             call_args = runtime.pull.call_args[0]
-            assert "clodbox-systems" in call_args[0]
+            assert "kanibako-systems" in call_args[0]
             assert call_args[0].startswith("ghcr.io/")

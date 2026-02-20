@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from clodbox.errors import GitError
+from kanibako.errors import GitError
 
 
 @dataclass

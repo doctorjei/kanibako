@@ -1,4 +1,4 @@
-"""clodbox box: project lifecycle management (list, migrate, duplicate, archive, purge, restore)."""
+"""kanibako box: project lifecycle management (list, migrate, duplicate, archive, purge, restore)."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import shutil
 import sys
 from pathlib import Path
 
-from clodbox.config import load_config
-from clodbox.paths import _xdg, iter_projects, load_std_paths
-from clodbox.utils import confirm_prompt, project_hash, short_hash
+from kanibako.config import load_config
+from kanibako.paths import _xdg, iter_projects, load_std_paths
+from kanibako.utils import confirm_prompt, project_hash, short_hash
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -20,15 +20,15 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     box_sub = p.add_subparsers(dest="box_command", metavar="COMMAND")
 
-    # clodbox box list (default behavior)
+    # kanibako box list (default behavior)
     list_p = box_sub.add_parser(
         "list",
         help="List known projects and their status (default)",
-        description="List all known clodbox projects with their hash, status, and path.",
+        description="List all known kanibako projects with their hash, status, and path.",
     )
     list_p.set_defaults(func=run_list)
 
-    # clodbox box migrate
+    # kanibako box migrate
     migrate_p = box_sub.add_parser(
         "migrate",
         help="Remap project data from old path to new path",
@@ -47,12 +47,12 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     migrate_p.set_defaults(func=run_migrate)
 
-    # clodbox box duplicate
+    # kanibako box duplicate
     duplicate_p = box_sub.add_parser(
         "duplicate",
         help="Duplicate a project (workspace + metadata) under a new path",
         description=(
-            "Copy a project's workspace directory and clodbox metadata to a new path.\n"
+            "Copy a project's workspace directory and kanibako metadata to a new path.\n"
             "The metadata is re-keyed under the new path's hash."
         ),
     )
@@ -60,7 +60,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     duplicate_p.add_argument("new_path", help="Destination path for the duplicate")
     duplicate_p.add_argument(
         "--bare", action="store_true",
-        help="Copy only clodbox metadata, don't touch the workspace directory",
+        help="Copy only kanibako metadata, don't touch the workspace directory",
     )
     duplicate_p.add_argument(
         "--force", action="store_true",
@@ -69,9 +69,9 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     duplicate_p.set_defaults(func=run_duplicate)
 
     # Reuse existing subcommand modules under box.
-    from clodbox.commands.archive import add_parser as add_archive_parser
-    from clodbox.commands.clean import add_parser as add_purge_parser
-    from clodbox.commands.restore import add_parser as add_restore_parser
+    from kanibako.commands.archive import add_parser as add_archive_parser
+    from kanibako.commands.clean import add_parser as add_purge_parser
+    from kanibako.commands.restore import add_parser as add_restore_parser
 
     add_archive_parser(box_sub)
     add_purge_parser(box_sub)
@@ -82,7 +82,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_list(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -111,7 +111,7 @@ def run_list(args: argparse.Namespace) -> int:
 def run_migrate(args: argparse.Namespace) -> int:
     import os
 
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -152,11 +152,11 @@ def run_migrate(args: argparse.Namespace) -> int:
             f"Error: project data already exists for new path: {new_path}",
             file=sys.stderr,
         )
-        print("  Use 'clodbox box purge' to remove it first.", file=sys.stderr)
+        print("  Use 'kanibako box purge' to remove it first.", file=sys.stderr)
         return 1
 
     # Warn if lock file exists.
-    lock_file = old_settings / ".clodbox.lock"
+    lock_file = old_settings / ".kanibako.lock"
     if lock_file.exists():
         print(
             "Warning: lock file found — a container may be running for this project.",
@@ -195,7 +195,7 @@ def run_migrate(args: argparse.Namespace) -> int:
 
 
 def run_duplicate(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -212,7 +212,7 @@ def run_duplicate(args: argparse.Namespace) -> int:
         print(f"Error: source path does not exist as a directory: {source_path}", file=sys.stderr)
         return 1
 
-    # 3. Source must have clodbox metadata.
+    # 3. Source must have kanibako metadata.
     source_hash = project_hash(str(source_path))
     projects_base = std.data_path / config.paths_projects_path
     source_settings = projects_base / source_hash
@@ -246,7 +246,7 @@ def run_duplicate(args: argparse.Namespace) -> int:
         return 1
 
     # 6. Lock file warning.
-    lock_file = source_settings / ".clodbox.lock"
+    lock_file = source_settings / ".kanibako.lock"
     if lock_file.exists():
         print(
             "Warning: lock file found — a container may be running for this project.",
@@ -278,7 +278,7 @@ def run_duplicate(args: argparse.Namespace) -> int:
         shutil.rmtree(new_settings)
     shutil.copytree(
         source_settings, new_settings,
-        ignore=shutil.ignore_patterns(".clodbox.lock"),
+        ignore=shutil.ignore_patterns(".kanibako.lock"),
     )
 
     # Update breadcrumb.

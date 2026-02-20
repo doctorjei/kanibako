@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.config: legacy .rc parsing, TOML flattening, project config."""
+"""Extended tests for kanibako.config: legacy .rc parsing, TOML flattening, project config."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import (
+from kanibako.config import (
     ClodboxConfig,
     _flatten_toml,
     load_config,
@@ -23,74 +23,74 @@ from clodbox.config import (
 
 class TestMigrateRcEdgeCases:
     def test_comments_ignored(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text("# This is a comment\nCLODBOX_DOT_PATH=mypath\n")
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text("# This is a comment\nKANIBAKO_DOT_PATH=mypath\n")
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "mypath"
 
     def test_bang_lines_ignored(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text("#!/bin/bash\nCLODBOX_DOT_PATH=mypath\n")
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text("#!/bin/bash\nKANIBAKO_DOT_PATH=mypath\n")
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "mypath"
 
     def test_export_prefix_stripped(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text('export CLODBOX_CONTAINER_IMAGE="custom:v1"\n')
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text('export KANIBAKO_CONTAINER_IMAGE="custom:v1"\n')
         cfg = migrate_rc(rc, toml)
         assert cfg.container_image == "custom:v1"
 
     def test_mixed_quoting(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
         rc.write_text(
-            'CLODBOX_DOT_PATH="double"\n'
-            "CLODBOX_CFG_FILE='single'\n"
+            'KANIBAKO_DOT_PATH="double"\n'
+            "KANIBAKO_CFG_FILE='single'\n"
         )
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "double"
         assert cfg.paths_cfg_file == "single"
 
     def test_empty_value(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text("CLODBOX_DOT_PATH=\n")
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text("KANIBAKO_DOT_PATH=\n")
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == ""
 
     def test_unknown_keys_ignored(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text("UNKNOWN_KEY=value\nCLODBOX_DOT_PATH=ok\n")
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text("UNKNOWN_KEY=value\nKANIBAKO_DOT_PATH=ok\n")
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "ok"
         assert not hasattr(cfg, "unknown_key")
 
     def test_no_equals_skipped(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
-        rc.write_text("this line has no equals sign\nCLODBOX_DOT_PATH=ok\n")
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
+        rc.write_text("this line has no equals sign\nKANIBAKO_DOT_PATH=ok\n")
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "ok"
 
     def test_mixed_valid_invalid(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
         rc.write_text(
             "# header\n"
-            "CLODBOX_DOT_PATH=dot1\n"
+            "KANIBAKO_DOT_PATH=dot1\n"
             "BAD_LINE\n"
-            "export CLODBOX_CFG_FILE=cfg1\n"
+            "export KANIBAKO_CFG_FILE=cfg1\n"
             "UNKNOWN=nope\n"
         )
         cfg = migrate_rc(rc, toml)
         assert cfg.paths_dot_path == "dot1"
         assert cfg.paths_cfg_file == "cfg1"
         # Backup created
-        assert (tmp_path / "clodbox.rc.bak").exists()
+        assert (tmp_path / "kanibako.rc.bak").exists()
 
 
 # ---------------------------------------------------------------------------

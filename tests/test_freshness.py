@@ -1,4 +1,4 @@
-"""Tests for clodbox.freshness: digest comparison, caching, exception swallowing."""
+"""Tests for kanibako.freshness: digest comparison, caching, exception swallowing."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.freshness import check_image_freshness, _cached_remote_digest
+from kanibako.freshness import check_image_freshness, _cached_remote_digest
 
 
 class TestCheckImageFreshness:
@@ -17,7 +17,7 @@ class TestCheckImageFreshness:
         runtime = MagicMock()
         runtime.get_local_digest.return_value = "sha256:abc"
 
-        with patch("clodbox.freshness.get_remote_digest", return_value="sha256:abc"):
+        with patch("kanibako.freshness.get_remote_digest", return_value="sha256:abc"):
             check_image_freshness(runtime, "img:latest", tmp_path)
 
         assert "newer version" not in capsys.readouterr().err
@@ -27,7 +27,7 @@ class TestCheckImageFreshness:
         runtime = MagicMock()
         runtime.get_local_digest.return_value = "sha256:old"
 
-        with patch("clodbox.freshness.get_remote_digest", return_value="sha256:new"):
+        with patch("kanibako.freshness.get_remote_digest", return_value="sha256:new"):
             check_image_freshness(runtime, "img:latest", tmp_path)
 
         assert "newer version" in capsys.readouterr().err
@@ -37,7 +37,7 @@ class TestCheckImageFreshness:
         runtime = MagicMock()
         runtime.get_local_digest.return_value = "sha256:abc"
 
-        with patch("clodbox.freshness.get_remote_digest", return_value=None):
+        with patch("kanibako.freshness.get_remote_digest", return_value=None):
             check_image_freshness(runtime, "img:latest", tmp_path)
 
         assert "newer version" not in capsys.readouterr().err
@@ -47,7 +47,7 @@ class TestCheckImageFreshness:
         runtime = MagicMock()
         runtime.get_local_digest.return_value = None
 
-        with patch("clodbox.freshness.get_remote_digest") as m:
+        with patch("kanibako.freshness.get_remote_digest") as m:
             check_image_freshness(runtime, "img:latest", tmp_path)
             m.assert_not_called()
 
@@ -64,7 +64,7 @@ class TestCheckImageFreshness:
 class TestCachedRemoteDigest:
     def test_cache_miss(self, tmp_path):
         """First call fetches from registry and writes cache."""
-        with patch("clodbox.freshness.get_remote_digest", return_value="sha256:new") as m:
+        with patch("kanibako.freshness.get_remote_digest", return_value="sha256:new") as m:
             result = _cached_remote_digest("img:latest", tmp_path)
         assert result == "sha256:new"
         m.assert_called_once()
@@ -78,7 +78,7 @@ class TestCachedRemoteDigest:
         cache = {"img:latest": {"digest": "sha256:cached", "ts": time.time()}}
         (tmp_path / "digest-cache.json").write_text(json.dumps(cache))
 
-        with patch("clodbox.freshness.get_remote_digest") as m:
+        with patch("kanibako.freshness.get_remote_digest") as m:
             result = _cached_remote_digest("img:latest", tmp_path)
         assert result == "sha256:cached"
         m.assert_not_called()
@@ -88,7 +88,7 @@ class TestCachedRemoteDigest:
         cache = {"img:latest": {"digest": "sha256:old", "ts": time.time() - 100000}}
         (tmp_path / "digest-cache.json").write_text(json.dumps(cache))
 
-        with patch("clodbox.freshness.get_remote_digest", return_value="sha256:fresh") as m:
+        with patch("kanibako.freshness.get_remote_digest", return_value="sha256:fresh") as m:
             result = _cached_remote_digest("img:latest", tmp_path)
         assert result == "sha256:fresh"
         m.assert_called_once()
@@ -97,6 +97,6 @@ class TestCachedRemoteDigest:
         """Corrupt cache file is handled gracefully."""
         (tmp_path / "digest-cache.json").write_text("not json!")
 
-        with patch("clodbox.freshness.get_remote_digest", return_value="sha256:ok"):
+        with patch("kanibako.freshness.get_remote_digest", return_value="sha256:ok"):
             result = _cached_remote_digest("img:latest", tmp_path)
         assert result == "sha256:ok"

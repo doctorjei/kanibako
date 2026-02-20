@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import ClodboxConfig, write_global_config
+from kanibako.config import ClodboxConfig, write_global_config
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -120,9 +120,9 @@ def integration_home(tmp_path, monkeypatch):
 
 @pytest.fixture
 def integration_config(integration_home):
-    """Write a default ``clodbox.toml`` and return its path."""
+    """Write a default ``kanibako.toml`` and return its path."""
     config_home = integration_home / "int_config"
-    cf = config_home / "clodbox" / "clodbox.toml"
+    cf = config_home / "kanibako" / "kanibako.toml"
     write_global_config(cf)
     return cf
 
@@ -130,7 +130,7 @@ def integration_config(integration_home):
 @pytest.fixture
 def integration_credentials(integration_home, integration_config):
     """Create a minimal credential store.  Returns the data path."""
-    from clodbox.config import load_config
+    from kanibako.config import load_config
 
     config = load_config(integration_config)
     data_home = integration_home / "int_data"

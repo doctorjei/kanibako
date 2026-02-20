@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.commands.start: lock, flags, credential flow."""
+"""Extended tests for kanibako.commands.start: lock, flags, credential flow."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clodbox.commands.start import _run_container
-from clodbox.errors import ContainerError
+from kanibako.commands.start import _run_container
+from kanibako.errors import ContainerError
 
 
 # ---------------------------------------------------------------------------
@@ -58,8 +58,8 @@ class TestConcurrencyLock:
                 new_session=False, safe_mode=False, resume_mode=False,
                 extra_args=[],
             )
-            # settings_path / ".clodbox.lock" was accessed
-            m.proj.settings_path.__truediv__.assert_called_with(".clodbox.lock")
+            # settings_path / ".kanibako.lock" was accessed
+            m.proj.settings_path.__truediv__.assert_called_with(".kanibako.lock")
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ class TestFlagCombinations:
 
     def test_double_dash_stripping(self, start_mocks):
         """run_start strips leading '--' from agent_args."""
-        from clodbox.commands.start import run_start
+        from kanibako.commands.start import run_start
         import argparse
 
         with start_mocks() as m:
@@ -242,7 +242,7 @@ class TestFirstBootImagePersistence:
     def test_first_boot_image_persisted(self, start_mocks):
         with start_mocks() as m:
             m.proj.is_new = True
-            with patch("clodbox.config.write_project_config") as m_wpc:
+            with patch("kanibako.config.write_project_config") as m_wpc:
                 _run_container(
                     project_dir=None, entrypoint=None, image_override="custom:v1",
                     new_session=False, safe_mode=False, resume_mode=False,
@@ -253,7 +253,7 @@ class TestFirstBootImagePersistence:
     def test_existing_project_image_not_persisted(self, start_mocks):
         with start_mocks() as m:
             m.proj.is_new = False
-            with patch("clodbox.config.write_project_config") as m_wpc:
+            with patch("kanibako.config.write_project_config") as m_wpc:
                 _run_container(
                     project_dir=None, entrypoint=None, image_override="custom:v1",
                     new_session=False, safe_mode=False, resume_mode=False,
@@ -264,7 +264,7 @@ class TestFirstBootImagePersistence:
     def test_first_boot_no_override_not_persisted(self, start_mocks):
         with start_mocks() as m:
             m.proj.is_new = True
-            with patch("clodbox.config.write_project_config") as m_wpc:
+            with patch("kanibako.config.write_project_config") as m_wpc:
                 _run_container(
                     project_dir=None, entrypoint=None, image_override=None,
                     new_session=False, safe_mode=False, resume_mode=False,
@@ -281,7 +281,7 @@ class TestOrphanDetectionHint:
     def test_orphan_hint_on_new_project(self, start_mocks, capsys):
         with start_mocks() as m:
             m.proj.is_new = True
-            with patch("clodbox.paths.iter_projects") as m_iter:
+            with patch("kanibako.paths.iter_projects") as m_iter:
                 orphan_path = MagicMock()
                 orphan_path.is_dir.return_value = False
                 m_iter.return_value = [(MagicMock(), orphan_path)]
@@ -296,7 +296,7 @@ class TestOrphanDetectionHint:
     def test_no_orphan_hint_on_existing_project(self, start_mocks, capsys):
         with start_mocks() as m:
             m.proj.is_new = False
-            with patch("clodbox.paths.iter_projects") as m_iter:
+            with patch("kanibako.paths.iter_projects") as m_iter:
                 m_iter.return_value = []
                 _run_container(
                     project_dir=None, entrypoint=None, image_override=None,

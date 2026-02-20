@@ -1,4 +1,4 @@
-"""Tests for clodbox.config."""
+"""Tests for kanibako.config."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from clodbox.config import (
+from kanibako.config import (
     ClodboxConfig,
     load_config,
     load_merged_config,
@@ -19,7 +19,7 @@ from clodbox.config import (
 class TestLoadConfig:
     def test_defaults(self, tmp_path):
         cfg = load_config(tmp_path / "nonexistent.toml")
-        assert cfg.container_image == "ghcr.io/doctorjei/clodbox-base:latest"
+        assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
         assert cfg.paths_dot_path == "dotclod"
 
     def test_round_trip(self, tmp_path):
@@ -28,7 +28,7 @@ class TestLoadConfig:
         write_global_config(path, cfg)
         loaded = load_config(path)
         assert loaded.container_image == "custom:latest"
-        assert loaded.paths_relative_std_path == "clodbox"
+        assert loaded.paths_relative_std_path == "kanibako"
 
 
 class TestMergedConfig:
@@ -74,20 +74,20 @@ class TestWriteProjectConfig:
 
 class TestMigrateRc:
     def test_migration(self, tmp_path):
-        rc = tmp_path / "clodbox.rc"
-        toml = tmp_path / "clodbox.toml"
+        rc = tmp_path / "kanibako.rc"
+        toml = tmp_path / "kanibako.toml"
         rc.write_text(
             '#!/usr/bin/env bash\n'
-            'export CLODBOX_RELATIVE_STD_PATH="clodbox"\n'
+            'export CLODBOX_RELATIVE_STD_PATH="kanibako"\n'
             'export CLODBOX_INIT_CREDENTIALS_PATH="credentials"\n'
             'export CLODBOX_PROJECTS_PATH="projects"\n'
             'export CLODBOX_DOT_PATH="dotclod"\n'
             'export CLODBOX_CFG_FILE="dotclod.json"\n'
-            'export CLODBOX_CONTAINER_IMAGE="ghcr.io/doctorjei/clodbox-base:latest"\n'
+            'export CLODBOX_CONTAINER_IMAGE="ghcr.io/doctorjei/kanibako-base:latest"\n'
         )
 
         cfg = migrate_rc(rc, toml)
-        assert cfg.container_image == "ghcr.io/doctorjei/clodbox-base:latest"
+        assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
         assert cfg.paths_dot_path == "dotclod"
         assert toml.exists()
         assert rc.with_suffix(".rc.bak").exists()

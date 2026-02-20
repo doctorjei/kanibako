@@ -1,4 +1,4 @@
-"""Tests for clodbox.container."""
+"""Tests for kanibako.container."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from clodbox.container import ContainerRuntime, detect_claude_install
-from clodbox.errors import ContainerError
+from kanibako.container import ContainerRuntime, detect_claude_install
+from kanibako.errors import ContainerError
 
 
 class TestDetectClaudeInstall:
@@ -94,13 +94,13 @@ class TestDetectClaudeInstall:
 
 class TestContainerRuntime:
     def test_detect_raises_when_nothing_found(self, monkeypatch):
-        monkeypatch.delenv("CLODBOX_DOCKER_CMD", raising=False)
+        monkeypatch.delenv("KANIBAKO_DOCKER_CMD", raising=False)
         with patch("shutil.which", return_value=None):
             with pytest.raises(ContainerError, match="No container runtime"):
                 ContainerRuntime()
 
     def test_uses_env_override(self, monkeypatch):
-        monkeypatch.setenv("CLODBOX_DOCKER_CMD", "/usr/bin/fake-docker")
+        monkeypatch.setenv("KANIBAKO_DOCKER_CMD", "/usr/bin/fake-docker")
         rt = ContainerRuntime()
         assert rt.cmd == "/usr/bin/fake-docker"
 
@@ -109,9 +109,9 @@ class TestContainerRuntime:
         assert rt.cmd == "/usr/bin/podman"
 
     def test_guess_containerfile(self):
-        assert ContainerRuntime._guess_containerfile("ghcr.io/x/clodbox-base:latest") == "base"
-        assert ContainerRuntime._guess_containerfile("ghcr.io/x/clodbox-systems:v1") == "systems"
-        assert ContainerRuntime._guess_containerfile("ghcr.io/x/clodbox-jvm:latest") == "jvm"
+        assert ContainerRuntime._guess_containerfile("ghcr.io/x/kanibako-base:latest") == "base"
+        assert ContainerRuntime._guess_containerfile("ghcr.io/x/kanibako-systems:v1") == "systems"
+        assert ContainerRuntime._guess_containerfile("ghcr.io/x/kanibako-jvm:latest") == "jvm"
         assert ContainerRuntime._guess_containerfile("totally-unrelated:latest") is None
 
 
@@ -121,18 +121,18 @@ class TestGetLocalDigest:
         import json
         rt = ContainerRuntime(command="echo")
         inspect_output = json.dumps([{
-            "RepoDigests": ["ghcr.io/x/clodbox-base@sha256:abc123"]
+            "RepoDigests": ["ghcr.io/x/kanibako-base@sha256:abc123"]
         }])
         from unittest.mock import MagicMock
-        with patch("clodbox.container.subprocess.run") as m:
+        with patch("kanibako.container.subprocess.run") as m:
             m.return_value = MagicMock(returncode=0, stdout=inspect_output)
-            result = rt.get_local_digest("ghcr.io/x/clodbox-base:latest")
+            result = rt.get_local_digest("ghcr.io/x/kanibako-base:latest")
         assert result == "sha256:abc123"
 
     def test_failure_returns_none(self):
         rt = ContainerRuntime(command="echo")
         from unittest.mock import MagicMock
-        with patch("clodbox.container.subprocess.run") as m:
+        with patch("kanibako.container.subprocess.run") as m:
             m.return_value = MagicMock(returncode=1, stdout="")
             result = rt.get_local_digest("nonexistent:latest")
         assert result is None
@@ -143,7 +143,7 @@ class TestGetLocalDigest:
         rt = ContainerRuntime(command="echo")
         inspect_output = json.dumps([{"RepoDigests": []}])
         from unittest.mock import MagicMock
-        with patch("clodbox.container.subprocess.run") as m:
+        with patch("kanibako.container.subprocess.run") as m:
             m.return_value = MagicMock(returncode=0, stdout=inspect_output)
             result = rt.get_local_digest("local:latest")
         assert result is None
@@ -151,6 +151,6 @@ class TestGetLocalDigest:
     def test_exception_returns_none(self):
         """Any unexpected exception returns None."""
         rt = ContainerRuntime(command="echo")
-        with patch("clodbox.container.subprocess.run", side_effect=OSError("fail")):
+        with patch("kanibako.container.subprocess.run", side_effect=OSError("fail")):
             result = rt.get_local_digest("img:latest")
         assert result is None

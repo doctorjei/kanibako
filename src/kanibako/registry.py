@@ -44,7 +44,7 @@ def _get_anonymous_token(registry: str, repo: str) -> str | None:
         return None
 
     url = f"https://ghcr.io/token?scope=repository:{repo}:pull"
-    req = urllib.request.Request(url, headers={"User-Agent": "clodbox"})
+    req = urllib.request.Request(url, headers={"User-Agent": "kanibako"})
     with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
         data = json.loads(resp.read())
     return data.get("token")
@@ -56,7 +56,7 @@ def _fetch_manifest_digest(
     """HEAD the manifest to read ``Docker-Content-Digest``."""
     url = f"https://{registry}/v2/{repo}/manifests/{tag}"
     headers: dict[str, str] = {
-        "User-Agent": "clodbox",
+        "User-Agent": "kanibako",
         "Accept": (
             "application/vnd.docker.distribution.manifest.v2+json, "
             "application/vnd.oci.image.index.v1+json"

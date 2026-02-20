@@ -1,4 +1,4 @@
-"""clodbox archive: archive session data + git metadata to .txz."""
+"""kanibako archive: archive session data + git metadata to .txz."""
 
 from __future__ import annotations
 
@@ -9,11 +9,11 @@ import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from clodbox.config import load_config
-from clodbox.errors import ArchiveError, GitError
-from clodbox.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
-from clodbox.paths import _xdg, load_std_paths, resolve_project
-from clodbox.utils import short_hash
+from kanibako.config import load_config
+from kanibako.errors import ArchiveError, GitError
+from kanibako.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
+from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.utils import short_hash
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -37,7 +37,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -64,10 +64,10 @@ def _archive_one(std, config, proj, *, output_file, args) -> int:
         basename = proj.project_path.name
         h8 = short_hash(proj.project_hash)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        archive_file = f"clodbox-{basename}-{h8}-{timestamp}.txz"
+        archive_file = f"kanibako-{basename}-{h8}-{timestamp}.txz"
 
     # Prepare metadata
-    info_file = proj.settings_path / "clodbox-archive-info.txt"
+    info_file = proj.settings_path / "kanibako-archive-info.txt"
     lines = [
         f"Project path: {proj.project_path}",
         f"Project hash: {proj.project_hash}",
@@ -105,7 +105,7 @@ def _archive_one(std, config, proj, *, output_file, args) -> int:
                 f"Warning: No git repository detected in {proj.project_path}",
                 file=sys.stderr,
             )
-            print("Only clodbox session data will be archived.", file=sys.stderr)
+            print("Only kanibako session data will be archived.", file=sys.stderr)
         lines.append("")
         lines.append("Git repository: no")
 
@@ -133,7 +133,7 @@ def _archive_one(std, config, proj, *, output_file, args) -> int:
 
 def _archive_all(std, config, args) -> int:
     """Archive session data for all known projects."""
-    from clodbox.paths import iter_projects
+    from kanibako.paths import iter_projects
 
     projects = iter_projects(std, config)
     if not projects:
@@ -180,7 +180,7 @@ def _archive_all(std, config, args) -> int:
 
 def _stub_project(settings_path, phash, project_path, config):
     """Create a minimal ProjectPaths stand-in for projects whose path is gone."""
-    from clodbox.paths import ProjectPaths
+    from kanibako.paths import ProjectPaths
 
     effective_path = project_path or Path(f"(unknown-{short_hash(phash)})")
     return ProjectPaths(

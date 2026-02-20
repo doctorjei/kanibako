@@ -1,22 +1,22 @@
-"""clodbox stop: stop running clodbox containers."""
+"""kanibako stop: stop running kanibako containers."""
 
 from __future__ import annotations
 
 import argparse
 import sys
 
-from clodbox.config import load_config
-from clodbox.container import ContainerRuntime
-from clodbox.errors import ContainerError
-from clodbox.paths import _xdg, load_std_paths, resolve_project
-from clodbox.utils import short_hash
+from kanibako.config import load_config
+from kanibako.container import ContainerRuntime
+from kanibako.errors import ContainerError
+from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.utils import short_hash
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "stop",
-        help="Stop a running clodbox container",
-        description="Stop a running clodbox container for a project.",
+        help="Stop a running kanibako container",
+        description="Stop a running kanibako container for a project.",
     )
     p.add_argument(
         "path", nargs="?", default=None,
@@ -24,7 +24,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--all", action="store_true", dest="all_containers",
-        help="Stop all running clodbox containers",
+        help="Stop all running kanibako containers",
     )
     p.set_defaults(func=run)
 
@@ -44,14 +44,14 @@ def run(args: argparse.Namespace) -> int:
 
 def _stop_one(runtime: ContainerRuntime, *, project_dir: str | None) -> int:
     """Stop the container for a single project."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
     proj = resolve_project(std, config, project_dir=project_dir, initialize=False)
-    container_name = f"clodbox-{short_hash(proj.project_hash)}"
+    container_name = f"kanibako-{short_hash(proj.project_hash)}"
 
-    lock_file = proj.settings_path / ".clodbox.lock"
+    lock_file = proj.settings_path / ".kanibako.lock"
 
     if runtime.stop(container_name):
         print(f"Stopped {container_name}")
@@ -64,10 +64,10 @@ def _stop_one(runtime: ContainerRuntime, *, project_dir: str | None) -> int:
 
 
 def _stop_all(runtime: ContainerRuntime) -> int:
-    """Stop all running clodbox containers."""
+    """Stop all running kanibako containers."""
     containers = runtime.list_running()
     if not containers:
-        print("No running clodbox containers found.")
+        print("No running kanibako containers found.")
         return 0
 
     stopped = 0

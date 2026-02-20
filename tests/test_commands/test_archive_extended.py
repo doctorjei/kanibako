@@ -1,4 +1,4 @@
-"""Extended tests for clodbox.commands.archive: git checks, auto filename, metadata."""
+"""Extended tests for kanibako.commands.archive: git checks, auto filename, metadata."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import pytest
 
-from clodbox.config import load_config
-from clodbox.errors import GitError
-from clodbox.paths import load_std_paths, resolve_project
+from kanibako.config import load_config
+from kanibako.errors import GitError
+from kanibako.paths import load_std_paths, resolve_project
 
 
 class TestArchiveExtended:
@@ -24,7 +24,7 @@ class TestArchiveExtended:
         return proj, project_dir
 
     def test_git_uncommitted_blocked(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
         import subprocess
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
@@ -40,7 +40,7 @@ class TestArchiveExtended:
         assert rc == 1
 
     def test_uncommitted_allowed(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
         (fake_git_repo / "dirty.txt").write_text("dirty")
@@ -54,7 +54,7 @@ class TestArchiveExtended:
 
     def test_unpushed_blocked(self, config_file, tmp_home, credentials_dir, fake_git_repo):
         """With an upstream set and unpushed commits, archive should fail."""
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
         import subprocess
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
@@ -91,7 +91,7 @@ class TestArchiveExtended:
         assert rc == 1
 
     def test_unpushed_allowed(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
 
@@ -104,7 +104,7 @@ class TestArchiveExtended:
 
     def test_non_git_project_succeeds(self, config_file, tmp_home, credentials_dir):
         """Archive works for non-git projects (no .git directory)."""
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         # tmp_home/project has no .git
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
@@ -118,7 +118,7 @@ class TestArchiveExtended:
         assert Path(tmp_home / "out.txz").exists()
 
     def test_auto_filename_format(self, config_file, tmp_home, credentials_dir):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
 
@@ -130,13 +130,13 @@ class TestArchiveExtended:
         )
         rc = run(args)
         assert rc == 0
-        # Auto-generated filename should match pattern: clodbox-<name>-<hash>-<timestamp>.txz
+        # Auto-generated filename should match pattern: kanibako-<name>-<hash>-<timestamp>.txz
         import glob
-        files = glob.glob(str(tmp_home / "clodbox-project-*.txz"))
+        files = glob.glob(str(tmp_home / "kanibako-project-*.txz"))
         assert len(files) == 1
 
     def test_git_metadata_in_archive(self, config_file, tmp_home, credentials_dir, fake_git_repo):
-        from clodbox.commands.archive import run
+        from kanibako.commands.archive import run
 
         proj, project_dir = self._setup_project(config_file, tmp_home, credentials_dir)
 
