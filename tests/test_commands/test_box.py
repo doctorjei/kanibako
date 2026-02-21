@@ -433,3 +433,56 @@ class TestBoxDuplicate:
         assert (dst_dir / "new_file.txt").read_text() == "new"
         # Existing file preserved (dirs_exist_ok merges).
         assert (dst_dir / "existing.txt").read_text() == "keep"
+
+
+class TestBoxInfo:
+    def test_info_account_centric(self, config_file, tmp_home, credentials_dir, capsys):
+        from kanibako.commands.box import run_info
+
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        resolve_project(std, config, project_dir=project_dir, initialize=True)
+
+        args = argparse.Namespace(path=project_dir)
+        rc = run_info(args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "account_centric" in out
+        assert str(tmp_home / "project") in out
+
+    def test_info_decentralized(self, config_file, tmp_home, capsys):
+        from kanibako.commands.box import run_info
+
+        project_dir = tmp_home / "project"
+        (project_dir / ".kanibako").mkdir()
+
+        args = argparse.Namespace(path=str(project_dir))
+        rc = run_info(args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "decentralized" in out
+
+    def test_info_no_data(self, config_file, tmp_home, capsys):
+        from kanibako.commands.box import run_info
+
+        args = argparse.Namespace(path=str(tmp_home / "project"))
+        rc = run_info(args)
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "No project data found" in err
+
+    def test_info_lock_status(self, config_file, tmp_home, credentials_dir, capsys):
+        from kanibako.commands.box import run_info
+
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
+        (proj.settings_path / ".kanibako.lock").touch()
+
+        args = argparse.Namespace(path=project_dir)
+        rc = run_info(args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "ACTIVE" in out

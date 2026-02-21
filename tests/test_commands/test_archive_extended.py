@@ -153,3 +153,30 @@ class TestArchiveExtended:
         with tarfile.open(archive_path, "r:xz") as tar:
             names = tar.getnames()
             assert any("data.txt" in n for n in names)
+
+    def test_archive_decentralized_project(self, config_file, tmp_home):
+        """Archive works for decentralized projects (settings in .kanibako/)."""
+        from kanibako.commands.archive import run
+
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = tmp_home / "project"
+        # Create decentralized marker and some data
+        kanibako_dir = project_dir / ".kanibako"
+        kanibako_dir.mkdir()
+        dot_path = kanibako_dir / config.paths_dot_path
+        dot_path.mkdir(parents=True)
+        (kanibako_dir / "data.txt").write_text("decentralized-data")
+
+        archive_path = str(tmp_home / "dec.txz")
+        args = argparse.Namespace(
+            path=str(project_dir), file=archive_path,
+            all_projects=False, allow_uncommitted=True, allow_unpushed=True, force=True,
+        )
+        rc = run(args)
+        assert rc == 0
+        assert Path(archive_path).exists()
+
+        with tarfile.open(archive_path, "r:xz") as tar:
+            names = tar.getnames()
+            assert any("data.txt" in n for n in names)

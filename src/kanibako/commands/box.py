@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 from kanibako.config import load_config
-from kanibako.paths import _xdg, iter_projects, load_std_paths
+from kanibako.errors import ProjectError
+from kanibako.paths import ProjectMode, _xdg, iter_projects, load_std_paths, resolve_any_project
 from kanibako.utils import confirm_prompt, project_hash, short_hash
 
 
@@ -67,6 +68,15 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Skip confirmation, overwrite existing data/metadata at destination",
     )
     duplicate_p.set_defaults(func=run_duplicate)
+
+    # kanibako box info
+    info_p = box_sub.add_parser(
+        "info",
+        help="Show project details",
+        description="Show project mode, paths, and status for a kanibako project.",
+    )
+    info_p.add_argument("path", nargs="?", default=None, help="Project directory (default: cwd)")
+    info_p.set_defaults(func=run_info)
 
     # Reuse existing subcommand modules under box.
     from kanibako.commands.archive import add_parser as add_archive_parser
@@ -288,4 +298,36 @@ def run_duplicate(args: argparse.Namespace) -> int:
     print(f"Duplicated project:")
     print(f"  from: {source_path} ({short_hash(source_hash)})")
     print(f"    to: {new_path} ({short_hash(new_hash)})")
+    return 0
+
+
+def run_info(args: argparse.Namespace) -> int:
+    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config = load_config(config_file)
+    std = load_std_paths(config)
+
+    try:
+        proj = resolve_any_project(std, config, project_dir=args.path, initialize=False)
+    except ProjectError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    if not proj.settings_path.is_dir():
+        print(f"Error: No project data found for {proj.project_path}", file=sys.stderr)
+        return 1
+
+    print(f"Mode:      {proj.mode.value}")
+    print(f"Project:   {proj.project_path}")
+    print(f"Hash:      {short_hash(proj.project_hash)}")
+    print(f"Settings:  {proj.settings_path}")
+    print(f"Shell:     {proj.shell_path}")
+    print(f"Vault RO:  {proj.vault_ro_path}")
+    print(f"Vault RW:  {proj.vault_rw_path}")
+
+    lock_file = proj.settings_path / ".kanibako.lock"
+    if lock_file.exists():
+        print(f"Lock:      ACTIVE ({lock_file})")
+    else:
+        print(f"Lock:      none")
+
     return 0

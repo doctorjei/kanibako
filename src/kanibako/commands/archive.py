@@ -12,7 +12,7 @@ from pathlib import Path
 from kanibako.config import load_config
 from kanibako.errors import ArchiveError, GitError
 from kanibako.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
-from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.paths import _xdg, load_std_paths, resolve_any_project
 from kanibako.utils import short_hash
 
 
@@ -48,7 +48,7 @@ def run(args: argparse.Namespace) -> int:
         print("Error: specify a project path, or use --all", file=sys.stderr)
         return 1
 
-    proj = resolve_project(std, config, project_dir=args.path, initialize=False)
+    proj = resolve_any_project(std, config, project_dir=args.path, initialize=False)
     return _archive_one(std, config, proj, output_file=args.file, args=args)
 
 

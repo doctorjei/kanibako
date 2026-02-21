@@ -257,3 +257,16 @@ class TestParser:
         parser = build_parser()
         args = parser.parse_args(["start", "--", "--some-flag", "arg"])
         assert args.agent_args == ["--", "--some-flag", "arg"]
+
+    def test_box_info(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "info"])
+        assert args.command == "box"
+        assert args.box_command == "info"
+        assert args.path is None
+
+    def test_box_info_with_path(self):
+        parser = build_parser()
+        args = parser.parse_args(["box", "info", "/tmp/myproject"])
+        assert args.box_command == "info"
+        assert args.path == "/tmp/myproject"

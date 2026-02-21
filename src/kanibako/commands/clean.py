@@ -8,7 +8,7 @@ import sys
 
 from kanibako.config import load_config
 from kanibako.errors import UserCancelled
-from kanibako.paths import load_std_paths, resolve_project
+from kanibako.paths import load_std_paths, resolve_any_project
 from kanibako.utils import confirm_prompt, short_hash
 
 
@@ -47,7 +47,7 @@ def run(args: argparse.Namespace) -> int:
 
 def _purge_one(std, config, path: str, *, force: bool) -> int:
     """Purge session data for a single project."""
-    proj = resolve_project(std, config, project_dir=path, initialize=False)
+    proj = resolve_any_project(std, config, project_dir=path, initialize=False)
 
     if not proj.settings_path.is_dir():
         print(f"No session data found for project {proj.project_path}")

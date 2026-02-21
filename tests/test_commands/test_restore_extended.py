@@ -12,7 +12,7 @@ import pytest
 
 from kanibako.config import load_config
 from kanibako.errors import UserCancelled
-from kanibako.paths import load_std_paths, resolve_project
+from kanibako.paths import load_std_paths, resolve_any_project, resolve_project
 
 
 class TestRestoreExtended:
@@ -181,3 +181,40 @@ class TestRestoreExtended:
         )
         rc = run(args)
         assert rc == 1
+
+    def test_restore_decentralized_project(self, config_file, tmp_home, credentials_dir):
+        """Restore an archive into a decentralized project's .kanibako/."""
+        from kanibako.commands.archive import run as archive_run
+        from kanibako.commands.restore import run as restore_run
+
+        # First create an account-centric archive (same project dir)
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
+        (proj.settings_path / "data.txt").write_text("restore-me")
+
+        archive_path = str(tmp_home / "dec-restore.txz")
+        args = argparse.Namespace(
+            path=project_dir, file=archive_path,
+            all_projects=False, allow_uncommitted=True, allow_unpushed=True, force=True,
+        )
+        assert archive_run(args) == 0
+
+        # Now set up the project as decentralized
+        project_path = tmp_home / "project"
+        kanibako_dir = project_path / ".kanibako"
+        kanibako_dir.mkdir(exist_ok=True)
+        # Remove account-centric data so mode detection picks decentralized
+        shutil.rmtree(proj.settings_path)
+
+        # Restore into the decentralized project
+        args = argparse.Namespace(
+            path=project_dir, file=archive_path, all_archives=False, force=True,
+        )
+        rc = restore_run(args)
+        assert rc == 0
+
+        # Data should now exist in the decentralized settings path
+        dec_proj = resolve_any_project(std, config, project_dir=project_dir, initialize=False)
+        assert dec_proj.mode.value == "decentralized"

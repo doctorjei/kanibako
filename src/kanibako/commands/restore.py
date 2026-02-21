@@ -13,7 +13,7 @@ from pathlib import Path
 from kanibako.config import load_config
 from kanibako.errors import ArchiveError, UserCancelled
 from kanibako.git import is_git_repo
-from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.paths import _xdg, load_std_paths, resolve_any_project
 from kanibako.utils import confirm_prompt
 
 
@@ -55,7 +55,7 @@ def _restore_one(std, config, *, project_dir, archive_file, force) -> int:
         print(f"Error: Archive file not found: {archive_file}", file=sys.stderr)
         return 1
 
-    proj = resolve_project(std, config, project_dir=str(project_dir), initialize=False)
+    proj = resolve_any_project(std, config, project_dir=str(project_dir), initialize=False)
 
     temp_dir = tempfile.mkdtemp()
     try:

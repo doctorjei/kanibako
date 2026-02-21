@@ -20,9 +20,7 @@ class TestStartArgs:
         with (
             patch("kanibako.commands.start.load_config"),
             patch("kanibako.commands.start.load_std_paths"),
-            patch("kanibako.commands.start.detect_project_mode", return_value=ProjectMode.account_centric),
-            patch("kanibako.commands.start.resolve_project") as mock_proj,
-            patch("kanibako.commands.start.resolve_decentralized_project"),
+            patch("kanibako.commands.start.resolve_any_project") as mock_resolve_any,
             patch("kanibako.commands.start.load_merged_config") as mock_merged,
             patch("kanibako.commands.start.ContainerRuntime") as MockRT,
             patch("kanibako.commands.start.refresh_host_to_central"),
@@ -37,7 +35,7 @@ class TestStartArgs:
             proj.settings_path = MagicMock()
             proj.settings_path.__truediv__ = MagicMock(return_value=MagicMock())
             proj.dot_path.__truediv__ = MagicMock(return_value=MagicMock())
-            mock_proj.return_value = proj
+            mock_resolve_any.return_value = proj
 
             merged = MagicMock()
             merged.container_image = "test:latest"
@@ -69,9 +67,7 @@ class TestStartArgs:
         with (
             patch("kanibako.commands.start.load_config"),
             patch("kanibako.commands.start.load_std_paths"),
-            patch("kanibako.commands.start.detect_project_mode", return_value=ProjectMode.account_centric),
-            patch("kanibako.commands.start.resolve_project") as mock_proj,
-            patch("kanibako.commands.start.resolve_decentralized_project"),
+            patch("kanibako.commands.start.resolve_any_project") as mock_resolve_any,
             patch("kanibako.commands.start.load_merged_config") as mock_merged,
             patch("kanibako.commands.start.ContainerRuntime") as MockRT,
             patch("kanibako.commands.start.refresh_host_to_central"),
@@ -86,7 +82,7 @@ class TestStartArgs:
             proj.settings_path = MagicMock()
             proj.settings_path.__truediv__ = MagicMock(return_value=MagicMock())
             proj.dot_path.__truediv__ = MagicMock(return_value=MagicMock())
-            mock_proj.return_value = proj
+            mock_resolve_any.return_value = proj
 
             merged = MagicMock()
             merged.container_image = "test:latest"

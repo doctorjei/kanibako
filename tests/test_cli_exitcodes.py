@@ -162,7 +162,7 @@ class TestDecentralizedLaunch:
         return proj
 
     def test_start_detects_decentralized_project(self, start_mocks, tmp_path):
-        """start from an init --local dir calls resolve_decentralized_project."""
+        """start from an init --local dir uses resolve_any_project which returns decentralized."""
         from kanibako.commands.start import _run_container
 
         project = tmp_path / "myproject"
@@ -170,9 +170,8 @@ class TestDecentralizedLaunch:
         (project / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(project)
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             rc = _run_container(
                 project_dir=str(project), entrypoint=None, image_override=None,
@@ -181,8 +180,7 @@ class TestDecentralizedLaunch:
             )
 
         assert rc == 0
-        m.resolve_decentralized_project.assert_called_once()
-        m.resolve_project.assert_not_called()
+        m.resolve_any_project.assert_called_once()
 
     def test_start_decentralized_creates_lock(self, start_mocks, tmp_path):
         """.kanibako/.kanibako.lock is used during run."""
@@ -194,11 +192,8 @@ class TestDecentralizedLaunch:
         kanibako_dir.mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(project)
-            m.resolve_decentralized_project.return_value = proj
-            # Use real open/fcntl for lock file verification
-            m.open = None  # not used; builtins.open is patched in start_mocks
+            m.resolve_any_project.return_value = proj
 
             rc = _run_container(
                 project_dir=str(project), entrypoint=None, image_override=None,
@@ -220,9 +215,8 @@ class TestDecentralizedLaunch:
         (project / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(project)
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             _run_container(
                 project_dir=str(project), entrypoint=None, image_override=None,
@@ -245,9 +239,8 @@ class TestDecentralizedLaunch:
         (project / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(project)
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             _run_container(
                 project_dir=str(project), entrypoint=None, image_override=None,
@@ -265,7 +258,7 @@ class TestDecentralizedLaunch:
         assert wb_args[0][0] == project / ".kanibako" / "dotclaude" / ".credentials.json"
 
     def test_shell_works_with_decentralized(self, start_mocks, tmp_path):
-        """shell auto-detects decentralized mode."""
+        """shell auto-detects decentralized mode via resolve_any_project."""
         from kanibako.commands.start import run_shell
 
         import argparse
@@ -273,18 +266,16 @@ class TestDecentralizedLaunch:
         (tmp_path / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(tmp_path)
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             rc = run_shell(args)
 
         assert rc == 0
-        m.resolve_decentralized_project.assert_called_once()
-        m.resolve_project.assert_not_called()
+        m.resolve_any_project.assert_called_once()
 
     def test_resume_works_with_decentralized(self, start_mocks, tmp_path):
-        """resume auto-detects decentralized mode."""
+        """resume auto-detects decentralized mode via resolve_any_project."""
         from kanibako.commands.start import run_resume
 
         import argparse
@@ -292,15 +283,13 @@ class TestDecentralizedLaunch:
         (tmp_path / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(tmp_path)
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             rc = run_resume(args)
 
         assert rc == 0
-        m.resolve_decentralized_project.assert_called_once()
-        m.resolve_project.assert_not_called()
+        m.resolve_any_project.assert_called_once()
 
     def test_start_account_centric_still_works(self, start_mocks, tmp_path):
         """Non-decentralized dir falls through to account-centric."""
@@ -310,7 +299,7 @@ class TestDecentralizedLaunch:
         project.mkdir()
 
         with start_mocks() as m:
-            # detect_project_mode defaults to account_centric in start_mocks
+            # Default start_mocks proj is account_centric
             rc = _run_container(
                 project_dir=str(project), entrypoint=None, image_override=None,
                 new_session=False, safe_mode=False, resume_mode=False,
@@ -318,8 +307,7 @@ class TestDecentralizedLaunch:
             )
 
         assert rc == 0
-        m.resolve_project.assert_called_once()
-        m.resolve_decentralized_project.assert_not_called()
+        m.resolve_any_project.assert_called_once()
 
     def test_start_decentralized_no_orphan_hint(self, start_mocks, tmp_path, capsys):
         """No orphan hint printed for decentralized projects."""
@@ -330,10 +318,9 @@ class TestDecentralizedLaunch:
         (project / ".kanibako").mkdir()
 
         with start_mocks() as m:
-            m.detect_project_mode.return_value = ProjectMode.decentralized
             proj = self._make_decentralized_proj(project)
             proj.is_new = True  # new project, but decentralized
-            m.resolve_decentralized_project.return_value = proj
+            m.resolve_any_project.return_value = proj
 
             with patch("kanibako.paths.iter_projects") as m_iter:
                 orphan_path = MagicMock()

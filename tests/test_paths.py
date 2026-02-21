@@ -8,7 +8,13 @@ import pytest
 
 from kanibako.config import KanibakoConfig, load_config
 from kanibako.errors import ConfigError, ProjectError
-from kanibako.paths import ProjectMode, detect_project_mode, load_std_paths, resolve_project
+from kanibako.paths import (
+    ProjectMode,
+    detect_project_mode,
+    load_std_paths,
+    resolve_any_project,
+    resolve_project,
+)
 from kanibako.utils import project_hash
 
 
@@ -162,3 +168,38 @@ class TestDetectProjectMode:
 
         mode = detect_project_mode(proj_dir, std, config)
         assert mode is ProjectMode.workset
+
+
+class TestResolveAnyProject:
+    def test_resolve_any_project_account_centric(self, config_file, tmp_home, credentials_dir):
+        """Falls through to resolve_project for normal dirs."""
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_any_project(std, config, project_dir=project_dir, initialize=True)
+
+        assert proj.mode is ProjectMode.account_centric
+        assert proj.settings_path.is_dir()
+
+    def test_resolve_any_project_decentralized(self, config_file, tmp_home):
+        """Dispatches to resolve_decentralized_project when .kanibako/ exists."""
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = tmp_home / "project"
+        (project_dir / ".kanibako").mkdir()
+
+        proj = resolve_any_project(std, config, project_dir=str(project_dir), initialize=False)
+
+        assert proj.mode is ProjectMode.decentralized
+        assert proj.settings_path == project_dir.resolve() / ".kanibako"
+
+    def test_resolve_any_project_default_cwd(self, config_file, tmp_home, credentials_dir):
+        """Uses cwd when project_dir is None."""
+        config = load_config(config_file)
+        std = load_std_paths(config)
+
+        proj = resolve_any_project(std, config, initialize=True)
+
+        # cwd is tmp_home/project (set by tmp_home fixture)
+        assert proj.project_path == (tmp_home / "project").resolve()
+        assert proj.mode is ProjectMode.account_centric

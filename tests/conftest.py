@@ -169,9 +169,7 @@ def start_mocks():
         with (
             patch("kanibako.commands.start.load_config") as m_load_config,
             patch("kanibako.commands.start.load_std_paths") as m_load_std,
-            patch("kanibako.commands.start.detect_project_mode") as m_detect,
-            patch("kanibako.commands.start.resolve_project") as m_resolve,
-            patch("kanibako.commands.start.resolve_decentralized_project") as m_resolve_dec,
+            patch("kanibako.commands.start.resolve_any_project") as m_resolve_any,
             patch("kanibako.commands.start.load_merged_config") as m_merged,
             patch("kanibako.commands.start.ContainerRuntime") as m_rt_cls,
             patch("kanibako.commands.start.refresh_host_to_central") as m_h2c,
@@ -180,16 +178,13 @@ def start_mocks():
             patch("kanibako.commands.start.fcntl") as m_fcntl,
             patch("builtins.open", MagicMock()) as m_open,
         ):
-            # Default: account-centric mode (existing behavior)
-            m_detect.return_value = ProjectMode.account_centric
-
             proj = MagicMock()
             proj.is_new = False
             proj.mode = ProjectMode.account_centric
             proj.settings_path = MagicMock()
             proj.settings_path.__truediv__ = MagicMock(return_value=MagicMock())
             proj.dot_path.__truediv__ = MagicMock(return_value=MagicMock())
-            m_resolve.return_value = proj
+            m_resolve_any.return_value = proj
 
             merged = MagicMock()
             merged.container_image = "test:latest"
@@ -202,9 +197,7 @@ def start_mocks():
             yield SimpleNamespace(
                 load_config=m_load_config,
                 load_std_paths=m_load_std,
-                detect_project_mode=m_detect,
-                resolve_project=m_resolve,
-                resolve_decentralized_project=m_resolve_dec,
+                resolve_any_project=m_resolve_any,
                 load_merged_config=m_merged,
                 runtime_cls=m_rt_cls,
                 runtime=runtime,

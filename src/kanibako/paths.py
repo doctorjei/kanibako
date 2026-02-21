@@ -416,6 +416,22 @@ def iter_projects(std: StandardPaths, config: KanibakoConfig) -> list[tuple[Path
     return results
 
 
+def resolve_any_project(
+    std: StandardPaths,
+    config: KanibakoConfig,
+    project_dir: str | None = None,
+    *,
+    initialize: bool = False,
+) -> ProjectPaths:
+    """Auto-detect project mode and resolve paths accordingly."""
+    raw = project_dir or os.getcwd()
+    raw_dir = Path(raw).resolve()
+    mode = detect_project_mode(raw_dir, std, config)
+    if mode == ProjectMode.decentralized:
+        return resolve_decentralized_project(std, config, project_dir, initialize=initialize)
+    return resolve_project(std, config, project_dir=project_dir, initialize=initialize)
+
+
 def resolve_decentralized_project(
     std: StandardPaths,
     config: KanibakoConfig,
