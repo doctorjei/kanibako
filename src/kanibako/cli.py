@@ -48,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     from kanibako.commands.migrate_clodbox import (
         add_parser as add_migrate_parser,
     )
+    from kanibako.commands.init import add_init_parser, add_new_parser
 
     add_start_parser(subparsers)
     add_shell_parser(subparsers)
@@ -61,6 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
     add_upgrade_parser(subparsers)
     add_refresh_creds_parser(subparsers)
     add_migrate_parser(subparsers)
+    add_init_parser(subparsers)
+    add_new_parser(subparsers)
 
     return parser
 
@@ -68,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
 _SUBCOMMANDS = {
     "start", "shell", "resume", "stop", "config", "image",
     "box", "setup", "remove", "upgrade", "refresh-creds",
-    "migrate-from-clodbox",
+    "migrate-from-clodbox", "init", "new",
 }
 
 
