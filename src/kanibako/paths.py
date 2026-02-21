@@ -414,3 +414,112 @@ def iter_projects(std: StandardPaths, config: KanibakoConfig) -> list[tuple[Path
                 project_path = Path(text)
         results.append((entry, project_path))
     return results
+
+
+def resolve_decentralized_project(
+    std: StandardPaths,
+    config: KanibakoConfig,
+    project_dir: str | None = None,
+    *,
+    initialize: bool = False,
+) -> ProjectPaths:
+    """Resolve (and optionally initialize) per-project paths for decentralized mode.
+
+    All project state lives inside *project_dir* itself (``.kanibako/``,
+    ``.shell/``, ``vault/``).  No data is written to ``$XDG_DATA_HOME``.
+    """
+    raw = project_dir or os.getcwd()
+    project_path = Path(raw).resolve()
+
+    if not project_path.is_dir():
+        raise ProjectError(f"Project path '{project_path}' does not exist.")
+
+    phash = project_hash(str(project_path))
+    settings_path = project_path / ".kanibako"
+    dot_path = settings_path / config.paths_dot_path
+    cfg_file = settings_path / config.paths_cfg_file
+    shell_path = project_path / ".shell"
+    vault_ro_path = project_path / "vault" / "share-ro"
+    vault_rw_path = project_path / "vault" / "share-rw"
+
+    is_new = False
+    if initialize and not settings_path.is_dir():
+        _init_decentralized_project(
+            std, settings_path, dot_path, cfg_file, shell_path,
+            vault_ro_path, vault_rw_path, project_path,
+        )
+        is_new = True
+
+    if initialize:
+        # Recovery: ensure dot_path exists even if settings_path was present.
+        if not dot_path.is_dir():
+            dot_path.mkdir(parents=True, exist_ok=True)
+        if not cfg_file.exists():
+            cfg_file.touch()
+        if not shell_path.is_dir():
+            shell_path.mkdir(parents=True, exist_ok=True)
+            _bootstrap_shell(shell_path)
+
+    return ProjectPaths(
+        project_path=project_path,
+        project_hash=phash,
+        settings_path=settings_path,
+        dot_path=dot_path,
+        cfg_file=cfg_file,
+        shell_path=shell_path,
+        vault_ro_path=vault_ro_path,
+        vault_rw_path=vault_rw_path,
+        is_new=is_new,
+        mode=ProjectMode.decentralized,
+    )
+
+
+def _init_decentralized_project(
+    std: StandardPaths,
+    settings_path: Path,
+    dot_path: Path,
+    cfg_file: Path,
+    shell_path: Path,
+    vault_ro_path: Path,
+    vault_rw_path: Path,
+    project_path: Path,
+) -> None:
+    """First-time decentralized project setup: all state inside project dir.
+
+    Unlike ``_init_project``, this does not write a ``project-path.txt``
+    breadcrumb (the project is self-contained).  Unlike workset init, this
+    *does* create vault directories and a ``.gitignore`` (vault lives inside
+    the user's project, likely a git repo).
+    """
+    import sys
+
+    print(
+        f"[One Time Setup] Initializing kanibako in {project_path}... ",
+        end="",
+        flush=True,
+        file=sys.stderr,
+    )
+    settings_path.mkdir(parents=True, exist_ok=True)
+
+    # Copy credential template tree into project settings.
+    creds = std.credentials_path
+    if creds.is_dir():
+        shutil.copytree(str(creds), str(settings_path), dirs_exist_ok=True)
+    else:
+        dot_path.mkdir(parents=True, exist_ok=True)
+        cfg_file.touch()
+
+    # Persistent agent home (shell).
+    shell_path.mkdir(parents=True, exist_ok=True)
+    _bootstrap_shell(shell_path)
+
+    # Vault directories.
+    vault_ro_path.mkdir(parents=True, exist_ok=True)
+    vault_rw_path.mkdir(parents=True, exist_ok=True)
+    # .gitignore in vault/ to exclude share-rw from version control.
+    vault_dir = vault_ro_path.parent
+    gitignore = vault_dir / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text("share-rw/\n")
+
+    print("done.", file=sys.stderr)
