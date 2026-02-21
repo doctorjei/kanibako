@@ -98,6 +98,76 @@ class TestTargetWarnings:
         assert "Warning:" not in captured.err
 
 
+class TestCheckAuth:
+    """Verify pre-launch auth check behavior."""
+
+    def test_auth_failure_returns_1(self, start_mocks, capsys):
+        """When check_auth() returns False, start returns 1."""
+        with start_mocks() as m:
+            m.target.check_auth.return_value = False
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 1
+            m.runtime.run.assert_not_called()
+
+        captured = capsys.readouterr()
+        assert "Authentication failed" in captured.err
+
+    def test_auth_success_proceeds(self, start_mocks):
+        """When check_auth() returns True, container launches normally."""
+        with start_mocks() as m:
+            m.target.check_auth.return_value = True
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.runtime.run.assert_called_once()
+
+    def test_auth_skipped_without_install(self, start_mocks):
+        """When detect() returns None, check_auth is not called."""
+        with start_mocks() as m:
+            m.target.detect.return_value = None
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.target.check_auth.assert_not_called()
+
+    def test_auth_skipped_in_shell_mode(self, start_mocks):
+        """In shell mode (entrypoint set), check_auth is not called."""
+        with start_mocks() as m:
+            rc = _run_container(
+                project_dir=None,
+                entrypoint="/bin/bash",
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.target.check_auth.assert_not_called()
+
+
 class TestStartArgs:
     """Verify CLI args are correctly passed through to container."""
 

@@ -124,15 +124,12 @@ class TestRealFcntlLocking:
 class TestCredentialFlow:
     """End-to-end credential refresh pipeline with real files."""
 
-    def test_host_to_central_to_project_flow(
+    def test_host_to_project_flow(
         self, integration_home, integration_config, integration_credentials
     ):
-        """Full credential pipeline: host → central → project, real files."""
+        """Full credential pipeline: host → project, real files."""
         from kanibako.config import load_config
-        from kanibako.credentials import (
-            refresh_central_to_project,
-            refresh_host_to_central,
-        )
+        from kanibako.credentials import refresh_host_to_project
         from kanibako.paths import load_std_paths, resolve_project
 
         config = load_config(integration_config)
@@ -146,17 +143,10 @@ class TestCredentialFlow:
         host_token = {"claudeAiOauth": {"token": "host-fresh-token"}, "extra": True}
         host_creds.write_text(json.dumps(host_token))
 
-        central_creds = std.credentials_path / config.paths_dot_path / ".credentials.json"
         project_creds = proj.shell_path / ".claude" / ".credentials.json"
 
-        # Ensure central is older so host copy goes through
-        refresh_host_to_central(central_creds)
-        assert central_creds.is_file()
-        central_data = json.loads(central_creds.read_text())
-        assert central_data["claudeAiOauth"]["token"] == "host-fresh-token"
-
-        # Now refresh central → project
-        refresh_central_to_project(central_creds, project_creds)
+        # Refresh host → project
+        refresh_host_to_project(host_creds, project_creds)
         assert project_creds.is_file()
         project_data = json.loads(project_creds.read_text())
         assert project_data["claudeAiOauth"]["token"] == "host-fresh-token"
@@ -164,32 +154,32 @@ class TestCredentialFlow:
     def test_mtime_based_freshness(
         self, integration_home, integration_config, integration_credentials
     ):
-        """A newer project credential is not overwritten by an older central one."""
+        """A newer project credential is not overwritten by an older host one."""
         from kanibako.config import load_config
-        from kanibako.credentials import refresh_central_to_project
+        from kanibako.credentials import refresh_host_to_project
         from kanibako.paths import load_std_paths, resolve_project
 
         config = load_config(integration_config)
         std = load_std_paths(config)
         proj = resolve_project(std, config, initialize=True)
 
-        central_creds = std.credentials_path / config.paths_dot_path / ".credentials.json"
-        project_creds = proj.shell_path / ".claude" / ".credentials.json"
-
-        # Write central credentials
-        central_creds.parent.mkdir(parents=True, exist_ok=True)
-        central_creds.write_text(json.dumps({"claudeAiOauth": {"token": "central-old"}}))
+        # Create host credentials
+        host_claude = integration_home / "int_home" / ".claude"
+        host_claude.mkdir(parents=True, exist_ok=True)
+        host_creds = host_claude / ".credentials.json"
+        host_creds.write_text(json.dumps({"claudeAiOauth": {"token": "host-old"}}))
 
         # Write project credentials with fresh token
+        project_creds = proj.shell_path / ".claude" / ".credentials.json"
         project_creds.parent.mkdir(parents=True, exist_ok=True)
         project_creds.write_text(json.dumps({"claudeAiOauth": {"token": "project-fresh"}}))
 
-        # Set project mtime 5 seconds ahead of central
+        # Set project mtime ahead of host
         now = time.time()
-        os.utime(central_creds, (now - 10, now - 10))
+        os.utime(host_creds, (now - 10, now - 10))
         os.utime(project_creds, (now, now))
 
-        result = refresh_central_to_project(central_creds, project_creds)
+        result = refresh_host_to_project(host_creds, project_creds)
         assert result is False
 
         # Verify project token unchanged

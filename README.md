@@ -47,7 +47,7 @@ git clone https://github.com/doctorjei/kanibako.git
 cd kanibako
 pip install -e ".[dev]"
 
-# First-time setup (creates config + credential store)
+# First-time setup (creates config + pulls image)
 kanibako setup
 ```
 
@@ -91,7 +91,7 @@ Subsequent runs reuse the existing state.
 | `kanibako env [list\|set\|get\|unset]` | Environment variable management |
 | `kanibako setup` | Initial setup |
 | `kanibako upgrade [--check]` | Update from git |
-| `kanibako refresh-creds` | Manual credential refresh |
+| `kanibako reauth` | Check auth and login if needed |
 
 ### Common flags
 

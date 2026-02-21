@@ -44,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
     from kanibako.commands.stop import add_parser as add_stop_parser
     from kanibako.commands.upgrade import add_parser as add_upgrade_parser
     from kanibako.commands.refresh_credentials import (
-        add_parser as add_refresh_creds_parser,
+        add_parser as add_reauth_parser,
     )
     from kanibako.commands.init import add_init_parser, add_new_parser
     from kanibako.commands.workset_cmd import add_parser as add_workset_parser
@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_setup_parser(subparsers)
     add_remove_parser(subparsers)
     add_upgrade_parser(subparsers)
-    add_refresh_creds_parser(subparsers)
+    add_reauth_parser(subparsers)
     add_status_parser(subparsers)
     add_init_parser(subparsers)
     add_new_parser(subparsers)
@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 _SUBCOMMANDS = {
     "start", "shell", "resume", "stop", "config", "image",
-    "box", "workset", "setup", "remove", "upgrade", "refresh-creds",
+    "box", "workset", "setup", "remove", "upgrade", "reauth",
     "status", "init", "new", "vault", "env",
 }
 

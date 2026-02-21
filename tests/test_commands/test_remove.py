@@ -19,10 +19,7 @@ class TestRemove:
         write_global_config(config_file)
         assert config_file.exists()
 
-        with (
-            patch("kanibako.commands.remove._remove_cron"),
-            patch("kanibako.commands.remove.confirm_prompt"),
-        ):
+        with patch("kanibako.commands.remove.confirm_prompt"):
             args = argparse.Namespace()
             rc = run(args)
 

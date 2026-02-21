@@ -78,6 +78,7 @@ class TestTargetABC:
         assert t.display_name == "Dummy Agent"
         assert t.detect() is None
         assert t.binary_mounts(None) == []
+        assert t.check_auth() is True  # default no-op returns True
 
     def test_abstract_methods_enforced(self):
         """Target subclass missing abstract methods cannot be instantiated."""

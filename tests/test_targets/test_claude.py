@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -227,40 +227,92 @@ class TestBuildCliArgs:
         assert "--continue" not in args
 
 
+class TestCheckAuth:
+    def test_logged_in_returns_true(self):
+        """check_auth returns True when status shows loggedIn."""
+        t = ClaudeTarget()
+        status_result = MagicMock(
+            returncode=0,
+            stdout=json.dumps({"loggedIn": True}),
+        )
+        with patch("kanibako.targets.claude.shutil.which", return_value="/usr/bin/claude"):
+            with patch("kanibako.targets.claude.subprocess.run", return_value=status_result):
+                assert t.check_auth() is True
+
+    def test_not_logged_in_triggers_login(self):
+        """check_auth runs login when status shows not loggedIn."""
+        t = ClaudeTarget()
+        status_not_logged = MagicMock(
+            returncode=0,
+            stdout=json.dumps({"loggedIn": False}),
+        )
+        login_result = MagicMock(returncode=0)
+        status_after_login = MagicMock(
+            returncode=0,
+            stdout=json.dumps({"loggedIn": True}),
+        )
+        with patch("kanibako.targets.claude.shutil.which", return_value="/usr/bin/claude"):
+            with patch("kanibako.targets.claude.subprocess.run",
+                       side_effect=[status_not_logged, login_result, status_after_login]):
+                assert t.check_auth() is True
+
+    def test_login_fails_returns_false(self):
+        """check_auth returns False when login fails."""
+        t = ClaudeTarget()
+        status_not_logged = MagicMock(
+            returncode=0,
+            stdout=json.dumps({"loggedIn": False}),
+        )
+        login_result = MagicMock(returncode=1)
+        with patch("kanibako.targets.claude.shutil.which", return_value="/usr/bin/claude"):
+            with patch("kanibako.targets.claude.subprocess.run",
+                       side_effect=[status_not_logged, login_result]):
+                assert t.check_auth() is False
+
+    def test_binary_not_found_returns_true(self):
+        """check_auth returns True when claude binary is not found."""
+        t = ClaudeTarget()
+        with patch("kanibako.targets.claude.shutil.which", return_value=None):
+            assert t.check_auth() is True
+
+    def test_status_command_fails_returns_true(self):
+        """check_auth returns True when auth status command fails."""
+        t = ClaudeTarget()
+        status_result = MagicMock(returncode=1, stdout="")
+        with patch("kanibako.targets.claude.shutil.which", return_value="/usr/bin/claude"):
+            with patch("kanibako.targets.claude.subprocess.run", return_value=status_result):
+                assert t.check_auth() is True
+
+
 class TestRefreshCredentials:
-    def test_calls_credential_functions(self, tmp_path, monkeypatch):
-        """refresh_credentials delegates to credential module functions."""
+    def test_calls_credential_function(self, tmp_path, monkeypatch):
+        """refresh_credentials delegates to refresh_host_to_project."""
         home = tmp_path / "home"
         (home / ".claude").mkdir(parents=True)
 
+        fake_home = tmp_path / "fake_user_home"
+        (fake_home / ".claude").mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+
         t = ClaudeTarget()
-        with (
-            patch("kanibako.targets.claude.ClaudeTarget._central_creds_path",
-                  return_value=tmp_path / "central" / ".credentials.json"),
-            patch("kanibako.credentials.refresh_host_to_central") as m_h2c,
-            patch("kanibako.credentials.refresh_central_to_project") as m_c2p,
-        ):
+        with patch("kanibako.credentials.refresh_host_to_project") as m_h2p:
             t.refresh_credentials(home)
 
-        m_h2c.assert_called_once()
-        m_c2p.assert_called_once()
-        # Verify project creds path is home/.claude/.credentials.json
-        project_creds = m_c2p.call_args[0][1]
+        m_h2p.assert_called_once()
+        host_creds = m_h2p.call_args[0][0]
+        project_creds = m_h2p.call_args[0][1]
+        assert host_creds == fake_home / ".claude" / ".credentials.json"
         assert project_creds == home / ".claude" / ".credentials.json"
 
 
 class TestWritebackCredentials:
     def test_calls_writeback(self, tmp_path):
-        """writeback_credentials delegates to credential module function."""
+        """writeback_credentials delegates to writeback_project_to_host."""
         home = tmp_path / "home"
         (home / ".claude").mkdir(parents=True)
 
         t = ClaudeTarget()
-        with (
-            patch("kanibako.targets.claude.ClaudeTarget._central_creds_path",
-                  return_value=tmp_path / "central" / ".credentials.json"),
-            patch("kanibako.credentials.writeback_project_to_central_and_host") as m_wb,
-        ):
+        with patch("kanibako.credentials.writeback_project_to_host") as m_wb:
             t.writeback_credentials(home)
 
         m_wb.assert_called_once()

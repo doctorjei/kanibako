@@ -219,10 +219,10 @@ class TestParser:
         args = parser.parse_args(["remove"])
         assert args.command == "remove"
 
-    def test_refresh_creds_command(self):
+    def test_reauth_command(self):
         parser = build_parser()
-        args = parser.parse_args(["refresh-creds"])
-        assert args.command == "refresh-creds"
+        args = parser.parse_args(["reauth"])
+        assert args.command == "reauth"
 
     def test_upgrade_command(self):
         parser = build_parser()

@@ -195,25 +195,26 @@ class TestDecentralizedCredentialFlow:
         resolved = project_dir.resolve()
         assert str(resolved / ".kanibako" / "shell") in str(creds_file)
 
-    def test_refresh_central_to_project_works(
-        self, std, config, project_dir, credentials_dir,
+    def test_refresh_host_to_project_works(
+        self, std, config, project_dir, credentials_dir, tmp_home,
     ):
         proj = resolve_decentralized_project(
             std, config, str(project_dir), initialize=True,
         )
-        from kanibako.credentials import refresh_central_to_project
+        from kanibako.credentials import refresh_host_to_project
 
-        central = std.credentials_path / config.paths_dot_path / ".credentials.json"
+        home = tmp_home / "home"
+        host_creds = home / ".claude" / ".credentials.json"
         project_creds = proj.shell_path / ".claude" / ".credentials.json"
 
-        # Touch central to ensure it's newer.
+        # Touch host to ensure it's newer.
         import time
         time.sleep(0.05)
-        central.write_text(json.dumps(
+        host_creds.write_text(json.dumps(
             {"claudeAiOauth": {"token": "refreshed-token"}}
         ))
 
-        result = refresh_central_to_project(central, project_creds)
+        result = refresh_host_to_project(host_creds, project_creds)
         assert result is True
 
         updated = json.loads(project_creds.read_text())

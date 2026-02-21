@@ -176,26 +176,26 @@ class TestWorksetProjectCredentialFlow:
         # Path should be under the workset's projects dir.
         assert str(ws.projects_dir) in str(creds_file)
 
-    def test_refresh_central_to_project_works_with_workset_shell_path(
-        self, workset_env, std, config, credentials_dir
+    def test_refresh_host_to_project_works_with_workset_shell_path(
+        self, workset_env, std, config, credentials_dir, tmp_home
     ):
         ws, name = workset_env
         proj = resolve_workset_project(ws, name, std, config, initialize=True)
 
-        from kanibako.credentials import refresh_central_to_project
+        from kanibako.credentials import refresh_host_to_project
 
-        central = std.credentials_path / config.paths_dot_path / ".credentials.json"
+        home = tmp_home / "home"
+        host_creds = home / ".claude" / ".credentials.json"
         project_creds = proj.shell_path / ".claude" / ".credentials.json"
 
-        # Central is newer (copy from credential template), so merge should work.
-        # Touch central to ensure it's newer.
+        # Touch host to ensure it's newer.
         import time
         time.sleep(0.05)
-        central.write_text(json.dumps(
+        host_creds.write_text(json.dumps(
             {"claudeAiOauth": {"token": "refreshed-token"}}
         ))
 
-        result = refresh_central_to_project(central, project_creds)
+        result = refresh_host_to_project(host_creds, project_creds)
         assert result is True
 
         updated = json.loads(project_creds.read_text())

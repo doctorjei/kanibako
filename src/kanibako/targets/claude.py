@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from kanibako.log import get_logger
@@ -93,29 +95,93 @@ class ClaudeTarget(Target):
         else:
             (home / ".claude.json").touch()
 
+    def check_auth(self) -> bool:
+        """Check if the user is authenticated with Claude.
+
+        Runs ``claude auth status --json`` and checks the ``loggedIn`` field.
+        If not logged in, runs ``claude auth login`` interactively and
+        re-checks status afterward.
+
+        Returns True if authentication is confirmed (or if the claude binary
+        is not found — the missing-binary warning already covers that case).
+        """
+        claude_path = shutil.which("claude")
+        if not claude_path:
+            return True
+
+        # Check current auth status.
+        try:
+            result = subprocess.run(
+                [claude_path, "auth", "status", "--json"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return True
+
+        if result.returncode != 0:
+            # Could not determine status; skip check.
+            return True
+
+        import json
+        try:
+            status = json.loads(result.stdout)
+        except (json.JSONDecodeError, ValueError):
+            return True
+
+        if status.get("loggedIn"):
+            return True
+
+        # Not logged in — prompt interactive login.
+        print(
+            "Claude is not authenticated. Running 'claude auth login'...",
+            file=sys.stderr,
+        )
+        try:
+            login_result = subprocess.run(
+                [claude_path, "auth", "login"],
+                timeout=120,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
+        if login_result.returncode != 0:
+            return False
+
+        # Re-check after login.
+        try:
+            recheck = subprocess.run(
+                [claude_path, "auth", "status", "--json"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            recheck_status = json.loads(recheck.stdout)
+            return bool(recheck_status.get("loggedIn"))
+        except Exception:
+            return False
+
     def refresh_credentials(self, home: Path) -> None:
         """Refresh Claude credentials from host into project home.
 
         Syncs host ``~/.claude/.credentials.json`` into ``home/.claude/.credentials.json``
         using mtime-based freshness.
         """
-        from kanibako.credentials import refresh_central_to_project, refresh_host_to_central
+        from kanibako.credentials import refresh_host_to_project
 
-        # Central store path (kept for cron compatibility).
-        central_creds = self._central_creds_path()
+        host_creds = Path.home() / ".claude" / ".credentials.json"
         project_creds = home / ".claude" / ".credentials.json"
 
-        refresh_host_to_central(central_creds)
-        refresh_central_to_project(central_creds, project_creds)
+        refresh_host_to_project(host_creds, project_creds)
 
     def writeback_credentials(self, home: Path) -> None:
         """Write back refreshed credentials from project home to host."""
-        from kanibako.credentials import writeback_project_to_central_and_host
+        from kanibako.credentials import writeback_project_to_host
 
-        central_creds = self._central_creds_path()
         project_creds = home / ".claude" / ".credentials.json"
 
-        writeback_project_to_central_and_host(project_creds, central_creds)
+        writeback_project_to_host(project_creds)
 
     def build_cli_args(
         self,
@@ -143,14 +209,3 @@ class ClaudeTarget(Target):
 
         cli_args.extend(extra_args)
         return cli_args
-
-    @staticmethod
-    def _central_creds_path() -> Path:
-        """Return the central credential store path for Claude."""
-        from kanibako.config import KanibakoConfig
-        from kanibako.paths import _xdg
-
-        data_home = _xdg("XDG_DATA_HOME", ".local/share")
-        config = KanibakoConfig()
-        data_path = data_home / config.paths_relative_std_path
-        return data_path / config.paths_init_credentials_path / config.paths_dot_path / ".credentials.json"

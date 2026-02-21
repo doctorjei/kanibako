@@ -19,21 +19,7 @@ class TestInstall:
         config_file = tmp_home / "config" / "kanibako" / "kanibako.toml"
         assert not config_file.exists()
 
-        # Mock host credential files and container runtime
-        home = tmp_home / "home"
-        claude_dir = home / ".claude"
-        claude_dir.mkdir(parents=True)
-        (claude_dir / ".credentials.json").write_text(
-            json.dumps({"claudeAiOauth": {"token": "t"}})
-        )
-        (home / ".claude.json").write_text(
-            json.dumps({"oauthAccount": "a", "installMethod": "cli"})
-        )
-
-        with (
-            patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no runtime")),
-            patch("kanibako.commands.install._install_cron"),
-        ):
+        with patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no runtime")):
             args = argparse.Namespace()
             rc = run(args)
 

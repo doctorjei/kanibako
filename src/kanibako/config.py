@@ -17,7 +17,6 @@ import tomllib
 
 _DEFAULTS = {
     "paths_relative_std_path": "kanibako",
-    "paths_init_credentials_path": "credentials",
     "paths_settings_path": "settings",
     "paths_dot_path": "dotclaude",
     "paths_cfg_file": "claude.json",
@@ -31,7 +30,6 @@ class KanibakoConfig:
     """Merged configuration (hardcoded defaults < kanibako.toml < project.toml < CLI)."""
 
     paths_relative_std_path: str = _DEFAULTS["paths_relative_std_path"]
-    paths_init_credentials_path: str = _DEFAULTS["paths_init_credentials_path"]
     paths_settings_path: str = _DEFAULTS["paths_settings_path"]
     paths_dot_path: str = _DEFAULTS["paths_dot_path"]
     paths_cfg_file: str = _DEFAULTS["paths_cfg_file"]
@@ -106,7 +104,6 @@ def write_global_config(path: Path, cfg: KanibakoConfig | None = None) -> None:
     lines = [
         "[paths]",
         f'relative_std_path = "{cfg.paths_relative_std_path}"',
-        f'init_credentials_path = "{cfg.paths_init_credentials_path}"',
         f'settings_path = "{cfg.paths_settings_path}"',
         f'dot_path = "{cfg.paths_dot_path}"',
         f'cfg_file = "{cfg.paths_cfg_file}"',

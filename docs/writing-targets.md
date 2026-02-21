@@ -14,8 +14,9 @@ A target is responsible for:
 1. **Detecting** the agent binary on the host
 2. **Mounting** the agent binary/installation into the container
 3. **Initializing** agent-specific config in the project home directory
-4. **Syncing credentials** between host and project home
-5. **Building CLI arguments** for the agent entrypoint
+4. **Checking authentication** before launch
+5. **Syncing credentials** between host and project home
+6. **Building CLI arguments** for the agent entrypoint
 
 ## The `Target` ABC
 
@@ -33,6 +34,7 @@ class MyTarget(Target):
     def detect(self) -> AgentInstall | None: ...
     def binary_mounts(self, install: AgentInstall) -> list[Mount]: ...
     def init_home(self, home: Path) -> None: ...
+    def check_auth(self) -> bool: ...
     def refresh_credentials(self, home: Path) -> None: ...
     def writeback_credentials(self, home: Path) -> None: ...
     def build_cli_args(self, *, safe_mode, resume_mode, new_session,
@@ -155,10 +157,44 @@ def init_home(self, home: Path) -> None:
         config_file.write_text("{}\n")
 ```
 
+### `check_auth() -> bool`
+
+Called **before** container launch (after detection, before credential
+sync).  Verify that the agent is authenticated on the host.  Return
+`True` if authentication is valid, `False` if it failed.
+
+The default implementation returns `True` (no-op).  Override this for
+agents that require pre-launch auth validation.
+
+For agents that use interactive login flows, `check_auth()` can trigger
+a login attempt and return the result:
+
+```python
+def check_auth(self) -> bool:
+    result = subprocess.run(
+        ["myagent", "auth", "status"],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        return True
+    # Trigger interactive login
+    subprocess.run(["myagent", "auth", "login"])
+    # Re-check
+    result = subprocess.run(
+        ["myagent", "auth", "status"],
+        capture_output=True, text=True,
+    )
+    return result.returncode == 0
+```
+
+For agents that use environment variables for API keys, this can be a
+no-op (the default `return True` is sufficient).
+
 ### `refresh_credentials(home: Path) -> None`
 
-Called **before** container launch.  Copy or sync credentials from the host
-into the project home so the agent can authenticate inside the container.
+Called **before** container launch (after `check_auth()`).  Copy or sync
+credentials from the host into the project home so the agent can
+authenticate inside the container.
 
 Must handle the first-run case where credential files don't exist yet on
 either side.  Keep the implementation simple — copy if source is newer, or

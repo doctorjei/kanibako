@@ -276,6 +276,12 @@ def _run_container(
         # Upgrade shell (add shell.d support to existing shells).
         _upgrade_shell(proj.shell_path)
 
+        # Pre-launch auth check
+        if target and install:
+            if not target.check_auth():
+                print("Error: Authentication failed.", file=sys.stderr)
+                return 1
+
         # Credential refresh via target
         if target:
             target.refresh_credentials(proj.shell_path)

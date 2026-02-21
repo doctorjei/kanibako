@@ -129,21 +129,23 @@ def integration_config(integration_home):
 
 @pytest.fixture
 def integration_credentials(integration_home, integration_config):
-    """Create a minimal credential store.  Returns the data path."""
+    """Set up host credentials for integration tests. Returns the data path."""
     from kanibako.config import load_config
 
     config = load_config(integration_config)
     data_home = integration_home / "int_data"
     data_path = data_home / config.paths_relative_std_path
-    creds_path = data_path / config.paths_init_credentials_path
-    dot_template = creds_path / config.paths_dot_path
-    dot_template.mkdir(parents=True, exist_ok=True)
+    data_path.mkdir(parents=True, exist_ok=True)
 
+    # Write host credentials (used directly by init now)
+    home = integration_home / "int_home"
+    host_claude = home / ".claude"
+    host_claude.mkdir(parents=True, exist_ok=True)
     creds = {"claudeAiOauth": {"token": "integration-test-token"}, "extra": True}
-    (dot_template / ".credentials.json").write_text(json.dumps(creds))
+    (host_claude / ".credentials.json").write_text(json.dumps(creds))
 
     cfg = {"oauthAccount": "int-test", "hasCompletedOnboarding": True}
-    (creds_path / config.paths_cfg_file).write_text(json.dumps(cfg))
+    (home / ".claude.json").write_text(json.dumps(cfg))
 
     return data_path
 

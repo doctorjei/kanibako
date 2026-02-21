@@ -59,22 +59,23 @@ def sample_config():
 
 @pytest.fixture
 def credentials_dir(tmp_home, config_file):
-    """Create a minimal credential store and return the data path."""
+    """Set up host credentials and return the data path."""
     from kanibako.config import load_config
     config = load_config(config_file)
     data_home = tmp_home / "data"
     data_path = data_home / config.paths_relative_std_path
-    creds_path = data_path / config.paths_init_credentials_path
-    dot_template = creds_path / config.paths_dot_path
-    dot_template.mkdir(parents=True, exist_ok=True)
+    data_path.mkdir(parents=True, exist_ok=True)
 
-    # Write a sample credentials file
+    # Write host credentials (used directly by init now)
+    home = tmp_home / "home"
+    host_claude = home / ".claude"
+    host_claude.mkdir(parents=True, exist_ok=True)
     creds = {"claudeAiOauth": {"token": "test-token"}, "someOtherKey": True}
-    (dot_template / ".credentials.json").write_text(json.dumps(creds))
+    (host_claude / ".credentials.json").write_text(json.dumps(creds))
 
-    # Write a sample cfg file
+    # Write host settings file
     cfg = {"oauthAccount": "test", "hasCompletedOnboarding": True}
-    (creds_path / config.paths_cfg_file).write_text(json.dumps(cfg))
+    (home / ".claude.json").write_text(json.dumps(cfg))
 
     return data_path
 

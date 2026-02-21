@@ -58,7 +58,6 @@ class StandardPaths:
     data_path: Path
     state_path: Path
     cache_path: Path
-    credentials_path: Path
 
 
 @dataclass
@@ -116,7 +115,6 @@ def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
     data_path = data_home / rel
     state_path = state_home / rel
     cache_path = cache_home / rel
-    credentials_path = data_path / config.paths_init_credentials_path
 
     # Ensure directories exist.
     config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +131,6 @@ def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
         data_path=data_path,
         state_path=state_path,
         cache_path=cache_path,
-        credentials_path=credentials_path,
     )
 
 
@@ -374,7 +371,7 @@ def _init_project(
     *,
     vault_enabled: bool = True,
 ) -> None:
-    """First-time project setup: create directories, copy credential template."""
+    """First-time project setup: create directories, copy credentials from host."""
     import sys
 
     print(
@@ -392,14 +389,8 @@ def _init_project(
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
 
-    # Copy credential template into shell.
-    creds = std.credentials_path
-    if creds.is_dir():
-        _copy_credentials_to_home(creds, shell_path)
-    else:
-        # No credential template; create minimal structure.
-        (shell_path / ".claude").mkdir(parents=True, exist_ok=True)
-        (shell_path / ".claude.json").touch()
+    # Copy credentials directly from host.
+    _copy_credentials_from_host(shell_path)
 
     # Vault directories (skip when vault is disabled).
     if vault_enabled:
@@ -414,26 +405,26 @@ def _init_project(
     print("done.", file=sys.stderr)
 
 
-def _copy_credentials_to_home(creds_source: Path, shell_path: Path) -> None:
-    """Copy credential template tree from central store into shell directory.
+def _copy_credentials_from_host(shell_path: Path) -> None:
+    """Copy credentials directly from host ~/.claude/ into the shell directory.
 
-    The central store has the old layout (dotclaude/.credentials.json, claude.json).
-    This copies into the natural-path layout (shell/.claude/.credentials.json,
-    shell/.claude.json).
+    Copies ``~/.claude/.credentials.json`` → ``shell/.claude/.credentials.json``
+    and filters ``~/.claude.json`` → ``shell/.claude.json``.
     """
-    # Find the dotclaude directory (or whatever paths_dot_path is configured as).
-    for child in creds_source.iterdir():
-        if child.is_dir():
-            # This is the dot_path equivalent (e.g. "dotclaude/")
-            dst_claude = shell_path / ".claude"
-            dst_claude.mkdir(parents=True, exist_ok=True)
-            # Copy contents (e.g. .credentials.json)
-            for item in child.iterdir():
-                if item.is_file():
-                    shutil.copy2(str(item), str(dst_claude / item.name))
-        elif child.is_file() and child.name != "project-path.txt":
-            # This is likely claude.json → .claude.json
-            shutil.copy2(str(child), str(shell_path / f".{child.name}" if not child.name.startswith(".") else child.name))
+    from kanibako.credentials import filter_settings
+
+    claude_dir = shell_path / ".claude"
+    claude_dir.mkdir(parents=True, exist_ok=True)
+
+    host_creds = Path.home() / ".claude" / ".credentials.json"
+    if host_creds.is_file():
+        shutil.copy2(str(host_creds), str(claude_dir / ".credentials.json"))
+
+    host_settings = Path.home() / ".claude.json"
+    if host_settings.is_file():
+        filter_settings(host_settings, shell_path / ".claude.json")
+    else:
+        (shell_path / ".claude.json").touch()
 
 
 def detect_project_mode(
@@ -594,13 +585,8 @@ def _init_workset_project(
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
 
-    # Copy credential template into shell.
-    creds = std.credentials_path
-    if creds.is_dir():
-        _copy_credentials_to_home(creds, shell_path)
-    else:
-        (shell_path / ".claude").mkdir(parents=True, exist_ok=True)
-        (shell_path / ".claude.json").touch()
+    # Copy credentials directly from host.
+    _copy_credentials_from_host(shell_path)
 
     print("done.", file=sys.stderr)
 
@@ -852,13 +838,8 @@ def _init_decentralized_project(
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
 
-    # Copy credential template into shell.
-    creds = std.credentials_path
-    if creds.is_dir():
-        _copy_credentials_to_home(creds, shell_path)
-    else:
-        (shell_path / ".claude").mkdir(parents=True, exist_ok=True)
-        (shell_path / ".claude.json").touch()
+    # Copy credentials directly from host.
+    _copy_credentials_from_host(shell_path)
 
     # Vault directories (skip when vault is disabled).
     if vault_enabled:

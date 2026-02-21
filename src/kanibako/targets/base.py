@@ -73,6 +73,10 @@ class Target(ABC):
         """
         ...
 
+    def check_auth(self) -> bool:
+        """Check if the agent is authenticated. Returns True if ok."""
+        return True
+
     @abstractmethod
     def refresh_credentials(self, home: Path) -> None:
         """Refresh agent credentials from host into the project home."""

@@ -1,7 +1,7 @@
 """Integration tests for the install command.
 
 Exercises real filesystem operations for install, containerfile discovery,
-cron job installation, and legacy .rc migration.  Run with::
+and settings filtering.  Run with::
 
     pytest -m integration tests/test_install_integration.py -v
 """
@@ -24,7 +24,7 @@ class TestInstallFilesystem:
     def test_full_install_creates_directory_tree(
         self, integration_home, integration_config
     ):
-        """Install creates config, data, and credentials directories."""
+        """Install creates config, data, and state directories."""
         from kanibako.config import load_config
         from kanibako.paths import load_std_paths
 
@@ -50,33 +50,6 @@ class TestInstallFilesystem:
         # Reload and verify custom value preserved
         reloaded = load_config(integration_config)
         assert reloaded.container_image == "custom:v99"
-
-    def test_install_copies_host_credentials(
-        self, integration_home, integration_config
-    ):
-        """Host credentials are copied to the central store."""
-        from kanibako.config import load_config
-        from kanibako.paths import load_std_paths
-
-        config = load_config(integration_config)
-        std = load_std_paths(config)
-
-        # Create fake host credentials
-        host_claude = integration_home / "int_home" / ".claude"
-        host_claude.mkdir(parents=True, exist_ok=True)
-        host_creds = host_claude / ".credentials.json"
-        creds = {"claudeAiOauth": {"token": "install-test-token"}}
-        host_creds.write_text(json.dumps(creds))
-
-        # Simulate install's credential copy
-        dot_template = std.credentials_path / config.paths_dot_path
-        dot_template.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(str(host_creds), str(dot_template / ".credentials.json"))
-
-        copied = dot_template / ".credentials.json"
-        assert copied.is_file()
-        copied_data = json.loads(copied.read_text())
-        assert copied_data["claudeAiOauth"]["token"] == "install-test-token"
 
     def test_install_filters_settings_json(
         self, integration_home, integration_config
@@ -156,65 +129,3 @@ class TestContainerfileDiscovery:
         assert result is not None
         assert result == override
         assert "user override" in result.read_text()
-
-
-@pytest.mark.integration
-class TestCronInstallation:
-    """Cron job installation for credential refresh."""
-
-    @requires_crontab
-    def test_cron_entry_installed(self, integration_home, integration_config):
-        """A cron entry for credential refresh is present in crontab."""
-        # Save existing crontab
-        saved = subprocess.run(
-            ["crontab", "-l"], capture_output=True, text=True
-        )
-        original_crontab = saved.stdout if saved.returncode == 0 else ""
-
-        try:
-            from kanibako.commands.install import _install_cron
-            _install_cron()
-
-            result = subprocess.run(
-                ["crontab", "-l"], capture_output=True, text=True
-            )
-            assert result.returncode == 0
-            assert "kanibako" in result.stdout
-            assert "refresh-creds" in result.stdout
-        finally:
-            # Restore original crontab
-            subprocess.run(
-                ["crontab", "-"],
-                input=original_crontab,
-                text=True,
-                capture_output=True,
-            )
-
-    @requires_crontab
-    def test_cron_deduplication(self, integration_home, integration_config):
-        """Running install twice does not create duplicate cron entries."""
-        saved = subprocess.run(
-            ["crontab", "-l"], capture_output=True, text=True
-        )
-        original_crontab = saved.stdout if saved.returncode == 0 else ""
-
-        try:
-            from kanibako.commands.install import _install_cron
-            _install_cron()
-            _install_cron()
-
-            result = subprocess.run(
-                ["crontab", "-l"], capture_output=True, text=True
-            )
-            lines = [
-                l for l in result.stdout.splitlines()
-                if "kanibako" in l and "refresh-creds" in l
-            ]
-            assert len(lines) == 1
-        finally:
-            subprocess.run(
-                ["crontab", "-"],
-                input=original_crontab,
-                text=True,
-                capture_output=True,
-            )
