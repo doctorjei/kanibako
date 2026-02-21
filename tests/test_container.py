@@ -154,3 +154,63 @@ class TestGetLocalDigest:
         with patch("kanibako.container.subprocess.run", side_effect=OSError("fail")):
             result = rt.get_local_digest("img:latest")
         assert result is None
+
+
+class TestRunEnvFlags:
+    """Test that run() emits -e flags from the env parameter."""
+
+    def test_env_flags_emitted(self):
+        from unittest.mock import MagicMock
+        rt = ContainerRuntime(command="/usr/bin/podman")
+        with patch("kanibako.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=0)
+            rt.run(
+                "test:latest",
+                shell_path=Path("/tmp/shell"),
+                project_path=Path("/tmp/project"),
+                vault_ro_path=Path("/tmp/vault-ro"),
+                vault_rw_path=Path("/tmp/vault-rw"),
+                vault_enabled=False,
+                env={"EDITOR": "vim", "NODE_ENV": "development"},
+            )
+            cmd = m.call_args[0][0]
+            # env flags should appear as -e KEY=VALUE pairs
+            assert "-e" in cmd
+            idx_editor = cmd.index("EDITOR=vim")
+            assert cmd[idx_editor - 1] == "-e"
+            idx_node = cmd.index("NODE_ENV=development")
+            assert cmd[idx_node - 1] == "-e"
+
+    def test_env_none_no_flags(self):
+        from unittest.mock import MagicMock
+        rt = ContainerRuntime(command="/usr/bin/podman")
+        with patch("kanibako.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=0)
+            rt.run(
+                "test:latest",
+                shell_path=Path("/tmp/shell"),
+                project_path=Path("/tmp/project"),
+                vault_ro_path=Path("/tmp/vault-ro"),
+                vault_rw_path=Path("/tmp/vault-rw"),
+                vault_enabled=False,
+                env=None,
+            )
+            cmd = m.call_args[0][0]
+            assert "-e" not in cmd
+
+    def test_env_empty_dict_no_flags(self):
+        from unittest.mock import MagicMock
+        rt = ContainerRuntime(command="/usr/bin/podman")
+        with patch("kanibako.container.subprocess.run") as m:
+            m.return_value = MagicMock(returncode=0)
+            rt.run(
+                "test:latest",
+                shell_path=Path("/tmp/shell"),
+                project_path=Path("/tmp/project"),
+                vault_ro_path=Path("/tmp/vault-ro"),
+                vault_rw_path=Path("/tmp/vault-rw"),
+                vault_enabled=False,
+                env={},
+            )
+            cmd = m.call_args[0][0]
+            assert "-e" not in cmd

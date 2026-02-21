@@ -11,8 +11,10 @@ from kanibako.errors import ConfigError, ProjectError, WorksetError
 from kanibako.paths import (
     ProjectLayout,
     ProjectMode,
+    _bootstrap_shell,
     _ensure_vault_symlink,
     _find_workset_for_path,
+    _upgrade_shell,
     detect_project_mode,
     load_std_paths,
     resolve_any_project,
@@ -526,3 +528,96 @@ class TestEnsureVaultSymlink:
         link = proj.project_path / "vault"
         assert not link.is_symlink()
         assert link.is_dir()
+
+
+class TestBootstrapShell:
+    """Tests for _bootstrap_shell() shell.d support."""
+
+    def test_creates_shell_d_directory(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _bootstrap_shell(shell)
+        assert (shell / ".shell.d").is_dir()
+
+    def test_bashrc_contains_shell_d_source(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _bootstrap_shell(shell)
+        content = (shell / ".bashrc").read_text()
+        assert ".shell.d/" in content
+        assert "for _f in" in content
+
+    def test_bashrc_uses_kanibako_ps1_envvar(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _bootstrap_shell(shell)
+        content = (shell / ".bashrc").read_text()
+        assert "KANIBAKO_PS1" in content
+
+    def test_creates_profile(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _bootstrap_shell(shell)
+        assert (shell / ".profile").is_file()
+
+    def test_idempotent(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _bootstrap_shell(shell)
+        content1 = (shell / ".bashrc").read_text()
+        _bootstrap_shell(shell)
+        content2 = (shell / ".bashrc").read_text()
+        assert content1 == content2
+
+
+class TestUpgradeShell:
+    """Tests for _upgrade_shell() patching existing shells."""
+
+    def test_creates_shell_d_if_missing(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        (shell / ".bashrc").write_text("# old bashrc\n")
+        _upgrade_shell(shell)
+        assert (shell / ".shell.d").is_dir()
+
+    def test_appends_source_line_to_old_bashrc(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        (shell / ".bashrc").write_text(
+            '# kanibako shell environment\n'
+            '[ -f /etc/bashrc ] && . /etc/bashrc\n'
+            'export PS1="(kanibako) \\u@\\h:\\w\\$ "\n'
+        )
+        _upgrade_shell(shell)
+        content = (shell / ".bashrc").read_text()
+        assert ".shell.d/" in content
+        assert "for _f in" in content
+
+    def test_idempotent_does_not_duplicate(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        (shell / ".bashrc").write_text("# old\n")
+        _upgrade_shell(shell)
+        content1 = (shell / ".bashrc").read_text()
+        _upgrade_shell(shell)
+        content2 = (shell / ".bashrc").read_text()
+        assert content1 == content2
+        assert content2.count(".shell.d/") == 1
+
+    def test_no_bashrc_is_noop(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        _upgrade_shell(shell)
+        # Should still create .shell.d but not a .bashrc
+        assert (shell / ".shell.d").is_dir()
+        assert not (shell / ".bashrc").exists()
+
+    def test_handles_missing_trailing_newline(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        (shell / ".bashrc").write_text("# no trailing newline")
+        _upgrade_shell(shell)
+        content = (shell / ".bashrc").read_text()
+        assert ".shell.d/" in content
+        lines = content.splitlines()
+        assert lines[0] == "# no trailing newline"

@@ -280,6 +280,9 @@ def _compute_decentral_paths(
     return shell, vault_ro, vault_rw
 
 
+_SHELL_D_SOURCE_LINE = 'for _f in ~/.shell.d/*.sh; do [ -r "$_f" ] && . "$_f"; done\nunset _f'
+
+
 def _bootstrap_shell(shell_path: Path) -> None:
     """Write minimal shell skeleton files into a new shell directory."""
     bashrc = shell_path / ".bashrc"
@@ -287,7 +290,9 @@ def _bootstrap_shell(shell_path: Path) -> None:
         bashrc.write_text(
             "# kanibako shell environment\n"
             "[ -f /etc/bashrc ] && . /etc/bashrc\n"
-            'export PS1="(kanibako) \\u@\\h:\\w\\$ "\n'
+            'export PS1="${KANIBAKO_PS1:-(kanibako) \\u@\\h:\\w\\$ }"\n'
+            "# Source user init scripts\n"
+            f"{_SHELL_D_SOURCE_LINE}\n"
         )
     profile = shell_path / ".profile"
     if not profile.exists():
@@ -295,6 +300,35 @@ def _bootstrap_shell(shell_path: Path) -> None:
             "# kanibako login profile\n"
             "[ -f ~/.bashrc ] && . ~/.bashrc\n"
         )
+    # Create shell.d drop-in directory.
+    shell_d = shell_path / ".shell.d"
+    shell_d.mkdir(exist_ok=True)
+
+
+def _upgrade_shell(shell_path: Path) -> None:
+    """Patch an existing shell directory to add shell.d support.
+
+    Idempotent — safe to call every launch.  Creates ``.shell.d/`` if missing
+    and appends the source line to ``.bashrc`` if absent.  No-op if
+    *shell_path* does not exist yet.
+    """
+    if not shell_path.is_dir():
+        return
+    shell_d = shell_path / ".shell.d"
+    shell_d.mkdir(exist_ok=True)
+
+    bashrc = shell_path / ".bashrc"
+    if not bashrc.is_file():
+        return
+    content = bashrc.read_text()
+    if ".shell.d/" in content:
+        return
+    # Append source line.
+    if content and not content.endswith("\n"):
+        content += "\n"
+    content += "# Source user init scripts\n"
+    content += f"{_SHELL_D_SOURCE_LINE}\n"
+    bashrc.write_text(content)
 
 
 def _ensure_vault_symlink(project_path: Path, vault_ro_path: Path) -> None:

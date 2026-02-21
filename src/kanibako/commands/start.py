@@ -12,6 +12,7 @@ from kanibako.container import ContainerRuntime
 from kanibako.errors import ConfigError, ContainerError
 from kanibako.paths import (
     ProjectMode,
+    _upgrade_shell,
     _xdg,
     load_std_paths,
     resolve_any_project,
@@ -254,6 +255,9 @@ def _run_container(
             if snap:
                 print(f"Vault snapshot: {snap.name}", file=sys.stderr)
 
+        # Upgrade shell (add shell.d support to existing shells).
+        _upgrade_shell(proj.shell_path)
+
         # Credential refresh via target
         if target:
             target.refresh_credentials(proj.shell_path)
@@ -275,6 +279,12 @@ def _run_container(
         if target and install:
             extra_mounts.extend(target.binary_mounts(install))
 
+        # Read per-project and global environment variables.
+        from kanibako.shellenv import merge_env
+        global_env_path = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "env"
+        project_env_path = proj.metadata_path / "env"
+        container_env = merge_env(global_env_path, project_env_path) or None
+
         # Run the container
         rc = runtime.run(
             image,
@@ -285,6 +295,7 @@ def _run_container(
             extra_mounts=extra_mounts or None,
             vault_tmpfs=(proj.mode == ProjectMode.account_centric),
             vault_enabled=proj.vault_enabled,
+            env=container_env,
             name=container_name,
             entrypoint=entrypoint,
             cli_args=cli_args or None,

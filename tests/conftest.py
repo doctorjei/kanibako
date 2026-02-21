@@ -173,6 +173,7 @@ def start_mocks():
             patch("kanibako.commands.start.load_merged_config") as m_merged,
             patch("kanibako.commands.start.ContainerRuntime") as m_rt_cls,
             patch("kanibako.commands.start.resolve_target") as m_resolve_target,
+            patch("kanibako.commands.start._upgrade_shell") as m_upgrade_shell,
             patch("kanibako.commands.start.fcntl") as m_fcntl,
             patch("builtins.open", MagicMock()) as m_open,
         ):

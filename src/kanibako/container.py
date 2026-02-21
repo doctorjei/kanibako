@@ -184,6 +184,7 @@ class ContainerRuntime:
         extra_mounts: list | None = None,
         vault_tmpfs: bool = False,
         vault_enabled: bool = True,
+        env: dict[str, str] | None = None,
         name: str | None = None,
         entrypoint: str | None = None,
         cli_args: list[str] | None = None,
@@ -210,6 +211,9 @@ class ContainerRuntime:
         if extra_mounts:
             for mount in extra_mounts:
                 cmd += ["-v", mount.to_volume_arg()]
+        if env:
+            for k, v in sorted(env.items()):
+                cmd += ["-e", f"{k}={v}"]
         if name:
             cmd += ["--name", name]
         if entrypoint:

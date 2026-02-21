@@ -59,7 +59,7 @@ class TestConcurrencyLock:
                 extra_args=[],
             )
             # metadata_path / ".kanibako.lock" was accessed
-            m.proj.metadata_path.__truediv__.assert_called_with(".kanibako.lock")
+            m.proj.metadata_path.__truediv__.assert_any_call(".kanibako.lock")
 
 
 # ---------------------------------------------------------------------------
