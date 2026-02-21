@@ -39,12 +39,6 @@ class TestRuntimeDetection:
         rt = ContainerRuntime()
         assert rt.cmd == "/usr/bin/true"
 
-        # Also test CLODBOX_DOCKER_CMD fallback
-        monkeypatch.delenv("KANIBAKO_DOCKER_CMD")
-        monkeypatch.setenv("CLODBOX_DOCKER_CMD", "/usr/bin/false")
-        rt2 = ContainerRuntime()
-        assert rt2.cmd == "/usr/bin/false"
-
 
 @pytest.mark.integration
 class TestImageOperations:

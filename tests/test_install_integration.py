@@ -235,9 +235,9 @@ class TestLegacyMigration:
         toml_file = config_dir / "kanibako.toml"
 
         rc_file.write_text(
-            'CLODBOX_RELATIVE_STD_PATH="kanibako"\n'
-            'CLODBOX_CONTAINER_IMAGE="ghcr.io/test/custom:v2"\n'
-            'CLODBOX_DOT_PATH="dotclaude"\n'
+            'KANIBAKO_RELATIVE_STD_PATH="kanibako"\n'
+            'KANIBAKO_CONTAINER_IMAGE="ghcr.io/test/custom:v2"\n'
+            'KANIBAKO_DOT_PATH="dotclaude"\n'
         )
 
         config = migrate_rc(rc_file, toml_file)

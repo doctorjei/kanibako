@@ -78,12 +78,12 @@ class TestMigrateRc:
         toml = tmp_path / "kanibako.toml"
         rc.write_text(
             '#!/usr/bin/env bash\n'
-            'export CLODBOX_RELATIVE_STD_PATH="kanibako"\n'
-            'export CLODBOX_INIT_CREDENTIALS_PATH="credentials"\n'
-            'export CLODBOX_PROJECTS_PATH="projects"\n'
-            'export CLODBOX_DOT_PATH="dotclod"\n'
-            'export CLODBOX_CFG_FILE="dotclod.json"\n'
-            'export CLODBOX_CONTAINER_IMAGE="ghcr.io/doctorjei/kanibako-base:latest"\n'
+            'export KANIBAKO_RELATIVE_STD_PATH="kanibako"\n'
+            'export KANIBAKO_INIT_CREDENTIALS_PATH="credentials"\n'
+            'export KANIBAKO_PROJECTS_PATH="projects"\n'
+            'export KANIBAKO_DOT_PATH="dotclod"\n'
+            'export KANIBAKO_CFG_FILE="dotclod.json"\n'
+            'export KANIBAKO_CONTAINER_IMAGE="ghcr.io/doctorjei/kanibako-base:latest"\n'
         )
 
         cfg = migrate_rc(rc, toml)

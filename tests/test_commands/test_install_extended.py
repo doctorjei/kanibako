@@ -91,7 +91,7 @@ class TestInstallExtended:
         config_dir = tmp_home / "config" / "kanibako"
         config_dir.mkdir(parents=True, exist_ok=True)
         rc_file = config_dir / "kanibako.rc"
-        rc_file.write_text('CLODBOX_CONTAINER_IMAGE="migrated:v1"\n')
+        rc_file.write_text('KANIBAKO_CONTAINER_IMAGE="migrated:v1"\n')
 
         with (
             patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no")),

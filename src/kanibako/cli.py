@@ -45,11 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
     from kanibako.commands.refresh_credentials import (
         add_parser as add_refresh_creds_parser,
     )
-    from kanibako.commands.migrate_clodbox import (
-        add_parser as add_migrate_parser,
-    )
     from kanibako.commands.init import add_init_parser, add_new_parser
     from kanibako.commands.workset_cmd import add_parser as add_workset_parser
+    from kanibako.commands.status import add_parser as add_status_parser
 
     add_start_parser(subparsers)
     add_shell_parser(subparsers)
@@ -63,7 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_remove_parser(subparsers)
     add_upgrade_parser(subparsers)
     add_refresh_creds_parser(subparsers)
-    add_migrate_parser(subparsers)
+    add_status_parser(subparsers)
     add_init_parser(subparsers)
     add_new_parser(subparsers)
 
@@ -73,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
 _SUBCOMMANDS = {
     "start", "shell", "resume", "stop", "config", "image",
     "box", "workset", "setup", "remove", "upgrade", "refresh-creds",
-    "migrate-from-clodbox", "init", "new",
+    "status", "init", "new",
 }
 
 
@@ -99,24 +97,15 @@ def main(argv: list[str] | None = None) -> None:
             effective = ["start"] + effective
         args = parser.parse_args(effective)
 
-        if args.command not in ("setup", "migrate-from-clodbox"):
+        if args.command != "setup":
             from kanibako.paths import _xdg
             _cf = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
             if not _cf.exists():
-                # Check for old clodbox installation
-                _old = _xdg("XDG_CONFIG_HOME", ".config") / "clodbox" / "clodbox.toml"
-                if _old.exists():
-                    print(
-                        "Detected clodbox installation. "
-                        "Run 'kanibako migrate-from-clodbox' to migrate.",
-                        file=sys.stderr,
-                    )
-                else:
-                    print(
-                        f"kanibako is not set up yet ({_cf} not found).\n"
-                        f"Run 'kanibako setup' first.",
-                        file=sys.stderr,
-                    )
+                print(
+                    f"kanibako is not set up yet ({_cf} not found).\n"
+                    f"Run 'kanibako setup' first.",
+                    file=sys.stderr,
+                )
                 sys.exit(1)
 
     func = getattr(args, "func", None)
