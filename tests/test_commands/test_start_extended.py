@@ -202,36 +202,47 @@ class TestFlagCombinations:
             )
             assert rc == 42
 
-    def test_credential_refresh_order(self, start_mocks):
-        """host_to_central is called before central_to_project."""
-        call_order = []
+    def test_target_refresh_called(self, start_mocks):
+        """target.refresh_credentials is called before runtime.run."""
         with start_mocks() as m:
-            m.refresh_host_to_central.side_effect = lambda *a: call_order.append("h2c")
-            m.refresh_central_to_project.side_effect = lambda *a: call_order.append("c2p")
             _run_container(
                 project_dir=None, entrypoint=None, image_override=None,
                 new_session=False, safe_mode=False, resume_mode=False,
                 extra_args=[],
             )
-            assert call_order == ["h2c", "c2p"]
+            m.target.refresh_credentials.assert_called_once_with(m.proj.home_path)
 
-    def test_writeback_after_run(self, start_mocks):
-        """writeback is called after runtime.run."""
+    def test_target_writeback_after_run(self, start_mocks):
+        """target.writeback_credentials is called after runtime.run."""
         call_order = []
         with start_mocks() as m:
-            orig_run = m.runtime.run.return_value
-
             def track_run(*a, **kw):
                 call_order.append("run")
                 return 0
             m.runtime.run.side_effect = track_run
-            m.writeback.side_effect = lambda *a: call_order.append("writeback")
+            m.target.writeback_credentials.side_effect = lambda *a: call_order.append("writeback")
             _run_container(
                 project_dir=None, entrypoint=None, image_override=None,
                 new_session=False, safe_mode=False, resume_mode=False,
                 extra_args=[],
             )
             assert call_order == ["run", "writeback"]
+
+    def test_target_build_cli_args_called(self, start_mocks):
+        """target.build_cli_args is called with correct parameters."""
+        with start_mocks() as m:
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=True, safe_mode=True, resume_mode=False,
+                extra_args=["--foo"],
+            )
+            m.target.build_cli_args.assert_called_once_with(
+                safe_mode=True,
+                resume_mode=False,
+                new_session=True,
+                is_new_project=False,
+                extra_args=["--foo"],
+            )
 
 
 # ---------------------------------------------------------------------------

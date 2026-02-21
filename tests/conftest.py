@@ -172,9 +172,7 @@ def start_mocks():
             patch("kanibako.commands.start.resolve_any_project") as m_resolve_any,
             patch("kanibako.commands.start.load_merged_config") as m_merged,
             patch("kanibako.commands.start.ContainerRuntime") as m_rt_cls,
-            patch("kanibako.commands.start.refresh_host_to_central") as m_h2c,
-            patch("kanibako.commands.start.refresh_central_to_project") as m_c2p,
-            patch("kanibako.commands.start.writeback_project_to_central_and_host") as m_wb,
+            patch("kanibako.commands.start.resolve_target") as m_resolve_target,
             patch("kanibako.commands.start.fcntl") as m_fcntl,
             patch("builtins.open", MagicMock()) as m_open,
         ):
@@ -189,11 +187,22 @@ def start_mocks():
 
             merged = MagicMock()
             merged.container_image = "test:latest"
+            merged.target_name = ""
             m_merged.return_value = merged
 
             runtime = MagicMock()
             runtime.run.return_value = 0
             m_rt_cls.return_value = runtime
+
+            # Target mock: resolve_target returns a mock target with detect/build_cli_args/etc.
+            target = MagicMock()
+            target.display_name = "Claude Code"
+            target.detect.return_value = MagicMock()  # install object
+            target.binary_mounts.return_value = []
+            target.build_cli_args.side_effect = lambda *, safe_mode, resume_mode, new_session, is_new_project, extra_args: (
+                _build_default_cli_args(safe_mode, resume_mode, new_session, is_new_project, extra_args)
+            )
+            m_resolve_target.return_value = target
 
             yield SimpleNamespace(
                 load_config=m_load_config,
@@ -204,11 +213,30 @@ def start_mocks():
                 runtime=runtime,
                 proj=proj,
                 merged=merged,
-                refresh_host_to_central=m_h2c,
-                refresh_central_to_project=m_c2p,
-                writeback=m_wb,
+                resolve_target=m_resolve_target,
+                target=target,
                 fcntl=m_fcntl,
                 open=m_open,
             )
 
     return _make
+
+
+def _build_default_cli_args(
+    safe_mode: bool, resume_mode: bool, new_session: bool,
+    is_new_project: bool, extra_args: list[str],
+) -> list[str]:
+    """Reproduce ClaudeTarget.build_cli_args logic for test mocks."""
+    cli_args: list[str] = []
+    if not safe_mode:
+        cli_args.append("--dangerously-skip-permissions")
+    if resume_mode:
+        cli_args.append("--resume")
+    else:
+        skip_continue = new_session or is_new_project
+        if any(a in ("--resume", "-r") for a in extra_args):
+            skip_continue = True
+        if not skip_continue:
+            cli_args.append("--continue")
+    cli_args.extend(extra_args)
+    return cli_args

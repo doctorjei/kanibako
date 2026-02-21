@@ -8,12 +8,7 @@ import sys
 from pathlib import Path
 
 from kanibako.config import load_config, load_merged_config
-from kanibako.container import ContainerRuntime, detect_claude_install
-from kanibako.credentials import (
-    refresh_central_to_project,
-    refresh_host_to_central,
-    writeback_project_to_central_and_host,
-)
+from kanibako.container import ContainerRuntime
 from kanibako.errors import ConfigError, ContainerError
 from kanibako.paths import (
     ProjectMode,
@@ -21,6 +16,7 @@ from kanibako.paths import (
     load_std_paths,
     resolve_any_project,
 )
+from kanibako.targets import resolve_target
 from kanibako.utils import short_hash
 
 
@@ -213,13 +209,21 @@ def _run_container(
     from kanibako.freshness import check_image_freshness
     check_image_freshness(runtime, image, std.cache_path)
 
-    # Detect host Claude installation for bind-mounting
-    claude_install = detect_claude_install()
-    if claude_install:
-        print(
-            f"Using host Claude: {claude_install.binary}",
-            file=sys.stderr,
-        )
+    # Resolve target (agent plugin) and detect installation
+    is_agent_mode = entrypoint is None
+    target = None
+    install = None
+    if is_agent_mode:
+        try:
+            target = resolve_target(merged.target_name or None)
+            install = target.detect()
+            if install:
+                print(
+                    f"Using host {target.display_name}: {install.binary}",
+                    file=sys.stderr,
+                )
+        except KeyError:
+            pass  # No target found — run without agent
 
     # Deterministic container name for stop/cleanup
     container_name = f"kanibako-{short_hash(proj.project_hash)}"
@@ -243,46 +247,26 @@ def _run_container(
     lock_fd.flush()
 
     try:
-        # Credential refresh: host → central → project
-        central_creds = std.credentials_path / config.paths_dot_path / ".credentials.json"
-        project_creds = proj.home_path / ".claude" / ".credentials.json"
+        # Credential refresh via target
+        if target:
+            target.refresh_credentials(proj.home_path)
 
-        refresh_host_to_central(central_creds)
-        refresh_central_to_project(central_creds, project_creds)
-
-        # Build CLI args for the container entrypoint
-        cli_args: list[str] = []
-        is_claude_mode = entrypoint is None
-
-        if is_claude_mode:
-            if not safe_mode:
-                cli_args.append("--dangerously-skip-permissions")
-
-            if resume_mode:
-                cli_args.append("--resume")
-            else:
-                # Default to --continue for existing projects
-                skip_continue = new_session or proj.is_new
-                # Check if user passed --resume/-r in extra_args
-                if any(a in ("--resume", "-r") for a in extra_args):
-                    skip_continue = True
-                if not skip_continue:
-                    cli_args.append("--continue")
-
-        cli_args.extend(extra_args)
+        # Build CLI args via target
+        if target:
+            cli_args = target.build_cli_args(
+                safe_mode=safe_mode,
+                resume_mode=resume_mode,
+                new_session=new_session,
+                is_new_project=proj.is_new,
+                extra_args=extra_args,
+            )
+        else:
+            cli_args = list(extra_args)
 
         # Build extra mounts from target binary detection
         extra_mounts = []
-        if claude_install:
-            from kanibako.targets.base import Mount
-            extra_mounts.append(
-                Mount(source=claude_install.install_dir,
-                      destination="/home/agent/.local/share/claude", options="ro")
-            )
-            extra_mounts.append(
-                Mount(source=claude_install.binary,
-                      destination="/home/agent/.local/bin/claude", options="ro")
-            )
+        if target and install:
+            extra_mounts.extend(target.binary_mounts(install))
 
         # Run the container
         rc = runtime.run(
@@ -298,8 +282,9 @@ def _run_container(
             cli_args=cli_args or None,
         )
 
-        # Write back refreshed credentials
-        writeback_project_to_central_and_host(project_creds, central_creds)
+        # Write back refreshed credentials via target
+        if target:
+            target.writeback_credentials(proj.home_path)
 
         return rc
 

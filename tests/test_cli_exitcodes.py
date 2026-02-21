@@ -229,7 +229,7 @@ class TestDecentralizedLaunch:
         assert call_kwargs["vault_rw_path"] == project / "vault" / "share-rw"
 
     def test_start_decentralized_credential_flow(self, start_mocks, tmp_path):
-        """Credential refresh uses project's home/.claude/.credentials.json."""
+        """Credential refresh uses target.refresh_credentials with home_path."""
         from kanibako.commands.start import _run_container
 
         project = tmp_path / "myproject"
@@ -246,14 +246,11 @@ class TestDecentralizedLaunch:
                 extra_args=[],
             )
 
-        # refresh_central_to_project called with project creds path
-        c2p_args = m.refresh_central_to_project.call_args
-        project_creds = c2p_args[0][1]
-        assert project_creds == project / "home" / ".claude" / ".credentials.json"
+        # target.refresh_credentials called with home_path
+        m.target.refresh_credentials.assert_called_once_with(project / "home")
 
-        # writeback called with same project creds path
-        wb_args = m.writeback.call_args
-        assert wb_args[0][0] == project / "home" / ".claude" / ".credentials.json"
+        # target.writeback_credentials called with home_path
+        m.target.writeback_credentials.assert_called_once_with(project / "home")
 
     def test_shell_works_with_decentralized(self, start_mocks, tmp_path):
         """shell auto-detects decentralized mode via resolve_any_project."""
@@ -420,7 +417,7 @@ class TestWorksetLaunch:
         assert call_kwargs["vault_rw_path"] == ws_root / "vault" / "myproj" / "share-rw"
 
     def test_start_workset_credential_flow(self, start_mocks, tmp_path):
-        """Credential refresh uses workset projects/{name}/home/.claude/.credentials.json."""
+        """Credential refresh uses target with workset home_path."""
         from kanibako.commands.start import _run_container
 
         ws_root = tmp_path / "my-workset"
@@ -438,14 +435,15 @@ class TestWorksetLaunch:
                 extra_args=[],
             )
 
-        # refresh_central_to_project called with project creds path
-        c2p_args = m.refresh_central_to_project.call_args
-        project_creds = c2p_args[0][1]
-        assert project_creds == ws_root / "projects" / "myproj" / "home" / ".claude" / ".credentials.json"
+        # target.refresh_credentials called with home_path
+        m.target.refresh_credentials.assert_called_once_with(
+            ws_root / "projects" / "myproj" / "home"
+        )
 
-        # writeback called with same project creds path
-        wb_args = m.writeback.call_args
-        assert wb_args[0][0] == ws_root / "projects" / "myproj" / "home" / ".claude" / ".credentials.json"
+        # target.writeback_credentials called with home_path
+        m.target.writeback_credentials.assert_called_once_with(
+            ws_root / "projects" / "myproj" / "home"
+        )
 
     def test_shell_works_with_workset(self, start_mocks, tmp_path):
         """shell auto-detects workset mode via resolve_any_project."""
