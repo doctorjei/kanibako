@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 
@@ -313,47 +312,3 @@ def load_project_overrides(path: Path) -> dict[str, str]:
         if val != getattr(defaults, fld.name):
             overrides[fld.name] = val
     return overrides
-
-
-# ---------------------------------------------------------------------------
-# Legacy .rc migration helpers (used by `kanibako install`)
-# ---------------------------------------------------------------------------
-
-_RC_KEY_MAP: dict[str, str] = {
-    "KANIBAKO_RELATIVE_STD_PATH": "paths_relative_std_path",
-    "KANIBAKO_INIT_CREDENTIALS_PATH": "paths_init_credentials_path",
-    "KANIBAKO_PROJECTS_PATH": "paths_settings_path",
-    "KANIBAKO_DOT_PATH": "paths_dot_path",
-    "KANIBAKO_CFG_FILE": "paths_cfg_file",
-    "KANIBAKO_CONTAINER_IMAGE": "container_image",
-}
-
-# Backward compat: also accept the old "CLOD" + "BOX" prefix (pre-rename).
-_LEGACY_PREFIX = "CLOD" + "BOX"
-for _k, _v in list(_RC_KEY_MAP.items()):
-    _RC_KEY_MAP[_k.replace("KANIBAKO", _LEGACY_PREFIX)] = _v
-
-
-def migrate_rc(rc_path: Path, toml_path: Path) -> KanibakoConfig:
-    """Read legacy kanibako.rc, write equivalent kanibako.toml, rename .rc → .rc.bak."""
-    cfg = KanibakoConfig()
-    text = rc_path.read_text()
-    for line in text.splitlines():
-        line = line.strip()
-        if line.startswith("#") or line.startswith("!") or not line:
-            continue
-        # Strip optional 'export '
-        if line.startswith("export "):
-            line = line[7:]
-        if "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        key = key.strip()
-        val = val.strip().strip('"').strip("'")
-        mapped = _RC_KEY_MAP.get(key)
-        if mapped:
-            setattr(cfg, mapped, val)
-    write_global_config(toml_path, cfg)
-    rc_path.rename(rc_path.with_suffix(".rc.bak"))
-    print(f"Migrated {rc_path} → {toml_path}", file=sys.stderr)
-    return cfg

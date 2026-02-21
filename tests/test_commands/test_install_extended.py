@@ -84,27 +84,6 @@ class TestInstallExtended:
         loaded = load_config(config_file)
         assert loaded.container_image == "custom:v1"
 
-    def test_legacy_rc_migrated(self, tmp_home):
-        from kanibako.commands.install import run
-
-        self._base_setup(tmp_home)
-        config_dir = tmp_home / "config" / "kanibako"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        rc_file = config_dir / "kanibako.rc"
-        rc_file.write_text('KANIBAKO_CONTAINER_IMAGE="migrated:v1"\n')
-
-        with (
-            patch("kanibako.commands.install.ContainerRuntime", side_effect=Exception("no")),
-            patch("kanibako.commands.install._install_cron"),
-        ):
-            rc = run(argparse.Namespace())
-        assert rc == 0
-        toml_file = config_dir / "kanibako.toml"
-        assert toml_file.exists()
-        loaded = load_config(toml_file)
-        assert loaded.container_image == "migrated:v1"
-        assert (config_dir / "kanibako.rc.bak").exists()
-
     def test_fresh_install_writes_defaults(self, tmp_home):
         from kanibako.commands.install import run
 

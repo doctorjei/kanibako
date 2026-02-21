@@ -218,38 +218,3 @@ class TestCronInstallation:
                 text=True,
                 capture_output=True,
             )
-
-
-@pytest.mark.integration
-class TestLegacyMigration:
-    """Legacy .rc → .toml migration."""
-
-    def test_legacy_rc_migrated_to_toml(self, integration_home):
-        """A legacy ``.rc`` file is migrated to ``.toml`` with a ``.rc.bak`` backup."""
-        from kanibako.config import load_config, migrate_rc
-
-        config_dir = integration_home / "int_config" / "kanibako"
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        rc_file = config_dir / "kanibako.rc"
-        toml_file = config_dir / "kanibako.toml"
-
-        rc_file.write_text(
-            'KANIBAKO_RELATIVE_STD_PATH="kanibako"\n'
-            'KANIBAKO_CONTAINER_IMAGE="ghcr.io/test/custom:v2"\n'
-            'KANIBAKO_DOT_PATH="dotclaude"\n'
-        )
-
-        config = migrate_rc(rc_file, toml_file)
-
-        assert toml_file.is_file()
-        assert rc_file.with_suffix(".rc.bak").is_file()
-        assert not rc_file.exists()
-
-        assert config.paths_relative_std_path == "kanibako"
-        assert config.container_image == "ghcr.io/test/custom:v2"
-        assert config.paths_dot_path == "dotclaude"
-
-        # Verify we can load the written toml
-        reloaded = load_config(toml_file)
-        assert reloaded.container_image == "ghcr.io/test/custom:v2"

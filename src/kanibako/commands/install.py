@@ -12,7 +12,6 @@ from pathlib import Path
 from kanibako.config import (
     KanibakoConfig,
     load_config,
-    migrate_rc,
     write_global_config,
 )
 from kanibako.container import ContainerRuntime
@@ -37,15 +36,11 @@ def run(args: argparse.Namespace) -> int:
     config_file = config_home / "kanibako" / "kanibako.toml"
 
     # ------------------------------------------------------------------
-    # 1. Write config (or migrate from .rc)
+    # 1. Write config
     # ------------------------------------------------------------------
-    legacy_rc = config_file.with_name("kanibako.rc")
     if config_file.exists():
         print("Configuration file already exists, loading.")
         config = load_config(config_file)
-    elif legacy_rc.exists():
-        print("Migrating legacy kanibako.rc to kanibako.toml...")
-        config = migrate_rc(legacy_rc, config_file)
     else:
         print("Writing general configuration file (kanibako.toml)... ", end="", flush=True)
         config = KanibakoConfig()

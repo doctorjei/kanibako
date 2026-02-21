@@ -10,7 +10,6 @@ from kanibako.config import (
     KanibakoConfig,
     load_config,
     load_merged_config,
-    migrate_rc,
     read_project_meta,
     write_global_config,
     write_project_config,
@@ -72,28 +71,6 @@ class TestWriteProjectConfig:
         write_project_config(path, "second:latest")
         cfg = load_config(path)
         assert cfg.container_image == "second:latest"
-
-
-class TestMigrateRc:
-    def test_migration(self, tmp_path):
-        rc = tmp_path / "kanibako.rc"
-        toml = tmp_path / "kanibako.toml"
-        rc.write_text(
-            '#!/usr/bin/env bash\n'
-            'export KANIBAKO_RELATIVE_STD_PATH="kanibako"\n'
-            'export KANIBAKO_INIT_CREDENTIALS_PATH="credentials"\n'
-            'export KANIBAKO_PROJECTS_PATH="projects"\n'
-            'export KANIBAKO_DOT_PATH="dotclod"\n'
-            'export KANIBAKO_CFG_FILE="dotclod.json"\n'
-            'export KANIBAKO_CONTAINER_IMAGE="ghcr.io/doctorjei/kanibako-base:latest"\n'
-        )
-
-        cfg = migrate_rc(rc, toml)
-        assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
-        assert cfg.paths_dot_path == "dotclod"  # preserves old value from rc
-        assert toml.exists()
-        assert rc.with_suffix(".rc.bak").exists()
-        assert not rc.exists()
 
 
 class TestProjectMeta:
