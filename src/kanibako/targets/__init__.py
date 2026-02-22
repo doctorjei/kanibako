@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from importlib.metadata import entry_points
 
-from kanibako.targets.base import AgentInstall, Mount, Target
+from kanibako.targets.base import AgentInstall, Mount, ResourceMapping, ResourceScope, Target
 
-__all__ = ["AgentInstall", "Mount", "Target", "discover_targets", "get_target", "resolve_target"]
+__all__ = [
+    "AgentInstall", "Mount", "ResourceMapping", "ResourceScope", "Target",
+    "discover_targets", "get_target", "resolve_target",
+]
 
 
 def discover_targets() -> dict[str, type[Target]]:

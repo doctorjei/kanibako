@@ -160,3 +160,11 @@ class TestTargetABC:
 
         with pytest.raises(TypeError):
             IncompleteTarget()  # type: ignore[abstract]
+
+
+class TestPublicExports:
+    def test_resource_types_importable_from_package(self):
+        from kanibako.targets import ResourceMapping, ResourceScope
+        assert ResourceScope.SHARED.value == "shared"
+        rm = ResourceMapping(path="x", scope=ResourceScope.PROJECT)
+        assert rm.path == "x"
