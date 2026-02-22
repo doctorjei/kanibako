@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
-from kanibako.targets.base import AgentInstall
+from kanibako.targets.base import AgentInstall, ResourceMapping, ResourceScope
 from kanibako.targets.claude import ClaudeTarget
 
 
@@ -302,6 +302,48 @@ class TestRefreshCredentials:
         project_creds = m_h2p.call_args[0][1]
         assert host_creds == fake_home / ".claude" / ".credentials.json"
         assert project_creds == home / ".claude" / ".credentials.json"
+
+
+class TestResourceMappings:
+    def test_returns_list(self):
+        t = ClaudeTarget()
+        mappings = t.resource_mappings()
+        assert isinstance(mappings, list)
+        assert len(mappings) > 0
+
+    def test_all_entries_are_resource_mappings(self):
+        t = ClaudeTarget()
+        for m in t.resource_mappings():
+            assert isinstance(m, ResourceMapping)
+
+    def test_shared_resources(self):
+        """Plugin binaries, cache, stats, statsig, telemetry are shared."""
+        t = ClaudeTarget()
+        mappings = {m.path: m.scope for m in t.resource_mappings()}
+        assert mappings["plugins/"] == ResourceScope.SHARED
+        assert mappings["cache/"] == ResourceScope.SHARED
+        assert mappings["stats-cache.json"] == ResourceScope.SHARED
+        assert mappings["statsig/"] == ResourceScope.SHARED
+        assert mappings["telemetry/"] == ResourceScope.SHARED
+
+    def test_seeded_resources(self):
+        """settings.json and CLAUDE.md are seeded from workset."""
+        t = ClaudeTarget()
+        mappings = {m.path: m.scope for m in t.resource_mappings()}
+        assert mappings["settings.json"] == ResourceScope.SEEDED
+        assert mappings["CLAUDE.md"] == ResourceScope.SEEDED
+
+    def test_project_resources(self):
+        """Session data, history, tasks, etc. are project-scoped."""
+        t = ClaudeTarget()
+        mappings = {m.path: m.scope for m in t.resource_mappings()}
+        project_paths = [
+            "projects/", "session-env/", "history.jsonl", "tasks/",
+            "todos/", "plans/", "file-history/", "backups/",
+            "debug/", "paste-cache/", "shell-snapshots/",
+        ]
+        for path in project_paths:
+            assert mappings[path] == ResourceScope.PROJECT, f"{path} should be PROJECT"
 
 
 class TestWritebackCredentials:

@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 from kanibako.log import get_logger
-from kanibako.targets.base import AgentInstall, Mount, Target
+from kanibako.targets.base import AgentInstall, Mount, ResourceMapping, ResourceScope, Target
 
 logger = get_logger("targets.claude")
 
@@ -161,6 +161,37 @@ class ClaudeTarget(Target):
             return bool(recheck_status.get("loggedIn"))
         except Exception:
             return False
+
+    def resource_mappings(self) -> list[ResourceMapping]:
+        """Declare Claude Code resource sharing scopes.
+
+        Shared: plugin binaries, caches, telemetry (identical across projects).
+        Seeded: settings.json, CLAUDE.md (copied from workset template at creation).
+        Project: conversation history, session data, tasks (per-project state).
+        """
+        return [
+            # Shared at workset/account level
+            ResourceMapping("plugins/", ResourceScope.SHARED, "Plugin binaries and registry"),
+            ResourceMapping("cache/", ResourceScope.SHARED, "General cache"),
+            ResourceMapping("stats-cache.json", ResourceScope.SHARED, "Usage stats cache"),
+            ResourceMapping("statsig/", ResourceScope.SHARED, "Feature flags"),
+            ResourceMapping("telemetry/", ResourceScope.SHARED, "Telemetry data"),
+            # Seeded from workset template at project creation
+            ResourceMapping("settings.json", ResourceScope.SEEDED, "Permissions and enabled plugins"),
+            ResourceMapping("CLAUDE.md", ResourceScope.SEEDED, "Agent instructions template"),
+            # Project-specific (fresh per project)
+            ResourceMapping("projects/", ResourceScope.PROJECT, "Session data and memory"),
+            ResourceMapping("session-env/", ResourceScope.PROJECT, "Session environment state"),
+            ResourceMapping("history.jsonl", ResourceScope.PROJECT, "Conversation history"),
+            ResourceMapping("tasks/", ResourceScope.PROJECT, "Task tracking"),
+            ResourceMapping("todos/", ResourceScope.PROJECT, "Todo lists"),
+            ResourceMapping("plans/", ResourceScope.PROJECT, "Plan mode files"),
+            ResourceMapping("file-history/", ResourceScope.PROJECT, "File edit history"),
+            ResourceMapping("backups/", ResourceScope.PROJECT, "File backups"),
+            ResourceMapping("debug/", ResourceScope.PROJECT, "Debug logs"),
+            ResourceMapping("paste-cache/", ResourceScope.PROJECT, "Clipboard state"),
+            ResourceMapping("shell-snapshots/", ResourceScope.PROJECT, "Shell state snapshots"),
+        ]
 
     def refresh_credentials(self, home: Path) -> None:
         """Refresh Claude credentials from host into project home.
