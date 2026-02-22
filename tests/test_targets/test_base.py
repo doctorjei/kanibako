@@ -6,7 +6,39 @@ from pathlib import Path
 
 import pytest
 
-from kanibako.targets.base import AgentInstall, Mount, Target
+from kanibako.targets.base import AgentInstall, Mount, ResourceMapping, ResourceScope, Target
+
+
+class TestResourceScope:
+    def test_enum_values(self):
+        assert ResourceScope.SHARED.value == "shared"
+        assert ResourceScope.PROJECT.value == "project"
+        assert ResourceScope.SEEDED.value == "seeded"
+
+
+class TestResourceMapping:
+    def test_fields(self):
+        rm = ResourceMapping(
+            path="plugins/",
+            scope=ResourceScope.SHARED,
+            description="Plugin binaries and registry",
+        )
+        assert rm.path == "plugins/"
+        assert rm.scope == ResourceScope.SHARED
+        assert rm.description == "Plugin binaries and registry"
+
+    def test_frozen(self):
+        rm = ResourceMapping(
+            path="plugins/",
+            scope=ResourceScope.SHARED,
+            description="test",
+        )
+        with pytest.raises(AttributeError):
+            rm.path = "other/"  # type: ignore[misc]
+
+    def test_no_description(self):
+        rm = ResourceMapping(path="cache/", scope=ResourceScope.SHARED)
+        assert rm.description == ""
 
 
 class TestMount:

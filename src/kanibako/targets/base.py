@@ -4,7 +4,25 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
+
+
+class ResourceScope(Enum):
+    """How an agent resource is shared across projects."""
+
+    SHARED = "shared"    # Shared at workset/account level
+    PROJECT = "project"  # Per-project, starts fresh
+    SEEDED = "seeded"    # Per-project, seeded from workset template at creation
+
+
+@dataclass(frozen=True)
+class ResourceMapping:
+    """Maps an agent resource path to its sharing scope."""
+
+    path: str                    # Relative path within agent home (e.g. "plugins/")
+    scope: ResourceScope         # How this resource is shared
+    description: str = ""        # Human-readable description
 
 
 @dataclass(frozen=True)
