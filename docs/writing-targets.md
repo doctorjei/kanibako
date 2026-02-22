@@ -249,6 +249,32 @@ def build_cli_args(self, *, safe_mode, resume_mode, new_session,
     return args
 ```
 
+### `resource_mappings() -> list[ResourceMapping]`
+
+*Optional.* Declare how agent resources should be shared across projects.
+
+Returns a list of `ResourceMapping` entries, each mapping a path within
+the agent's config directory to a `ResourceScope`:
+
+- `SHARED` — shared at the workset/account level (e.g. plugin binaries)
+- `PROJECT` — per-project, starts fresh (e.g. conversation history)
+- `SEEDED` — per-project, but seeded from the workset template at
+  project creation (e.g. agent settings)
+
+The default returns an empty list, meaning all agent resources are
+treated as project-scoped.
+
+```python
+from kanibako.targets.base import ResourceMapping, ResourceScope
+
+def resource_mappings(self) -> list[ResourceMapping]:
+    return [
+        ResourceMapping("plugins/", ResourceScope.SHARED, "Shared plugins"),
+        ResourceMapping("config.json", ResourceScope.SEEDED, "Agent config"),
+        ResourceMapping("history/", ResourceScope.PROJECT, "Session history"),
+    ]
+```
+
 ## Discovery and registration
 
 Kanibako uses Python [entry points](https://packaging.python.org/en/latest/specifications/entry-points/)
