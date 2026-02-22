@@ -95,6 +95,21 @@ class Target(ABC):
         """Check if the agent is authenticated. Returns True if ok."""
         return True
 
+    def resource_mappings(self) -> list[ResourceMapping]:
+        """Declare how agent resources are shared across projects.
+
+        Returns a list of ResourceMapping entries describing which paths
+        within the agent's home directory are shared, project-scoped, or
+        seeded from workset defaults.
+
+        The default returns an empty list, meaning all agent resources
+        are treated as project-scoped (the current behavior).
+
+        Paths are relative to the agent's config directory within the
+        project shell (e.g. ".claude/" for ClaudeTarget).
+        """
+        return []
+
     @abstractmethod
     def refresh_credentials(self, home: Path) -> None:
         """Refresh agent credentials from host into the project home."""
