@@ -7,35 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from kanibako.config import load_config
 from kanibako.errors import ProjectError
 from kanibako.paths import (
     ProjectMode,
-    load_std_paths,
     resolve_decentralized_project,
 )
 from kanibako.utils import project_hash
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def std(config_file, tmp_home):
-    config = load_config(config_file)
-    return load_std_paths(config)
-
-
-@pytest.fixture
-def config(config_file):
-    return load_config(config_file)
-
-
-@pytest.fixture
-def project_dir(tmp_home):
-    """Return the pre-existing project directory created by tmp_home."""
-    return tmp_home / "project"
 
 
 # ---------------------------------------------------------------------------

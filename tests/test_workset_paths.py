@@ -7,11 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from kanibako.config import load_config
 from kanibako.errors import WorksetError
 from kanibako.paths import (
     ProjectMode,
-    load_std_paths,
     resolve_workset_project,
 )
 from kanibako.utils import project_hash
@@ -21,17 +19,6 @@ from kanibako.workset import add_project, create_workset
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-@pytest.fixture
-def std(config_file, tmp_home):
-    config = load_config(config_file)
-    return load_std_paths(config)
-
-
-@pytest.fixture
-def config(config_file):
-    return load_config(config_file)
-
 
 @pytest.fixture
 def workset_env(std, config, tmp_home):

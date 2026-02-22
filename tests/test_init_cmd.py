@@ -2,34 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from kanibako.cli import _SUBCOMMANDS, build_parser
 from kanibako.commands.init import run_init, run_new
-from kanibako.config import load_config
-from kanibako.paths import load_std_paths
-
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def std(config_file):
-    config = load_config(config_file)
-    return load_std_paths(config)
-
-
-@pytest.fixture
-def config(config_file):
-    return load_config(config_file)
-
-
-@pytest.fixture
-def project_dir(tmp_home):
-    return tmp_home / "project"
 
 
 # ---------------------------------------------------------------------------

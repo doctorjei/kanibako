@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kanibako.config import KanibakoConfig, write_global_config
+from kanibako.config import KanibakoConfig, load_config, write_global_config
 
 
 @pytest.fixture
@@ -55,6 +55,26 @@ def config_file(tmp_home):
 def sample_config():
     """Return a default KanibakoConfig."""
     return KanibakoConfig()
+
+
+@pytest.fixture
+def config(config_file):
+    """Load config from the default kanibako.toml."""
+    return load_config(config_file)
+
+
+@pytest.fixture
+def std(config_file):
+    """Load standard paths from the default config."""
+    from kanibako.paths import load_std_paths
+    config = load_config(config_file)
+    return load_std_paths(config)
+
+
+@pytest.fixture
+def project_dir(tmp_home):
+    """Return the pre-existing project directory created by tmp_home."""
+    return tmp_home / "project"
 
 
 @pytest.fixture

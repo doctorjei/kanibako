@@ -27,22 +27,6 @@ from kanibako.paths import ProjectMode, load_std_paths, resolve_project
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def std(config_file):
-    config = load_config(config_file)
-    return load_std_paths(config)
-
-
-@pytest.fixture
-def config(config_file):
-    return load_config(config_file)
-
-
-@pytest.fixture
-def project_dir(tmp_home):
-    return tmp_home / "project"
-
-
-@pytest.fixture
 def initialized_project(config_file, credentials_dir, tmp_home):
     """Create a fully initialized account-centric project."""
     config = load_config(config_file)
