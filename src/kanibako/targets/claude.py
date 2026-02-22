@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -124,7 +125,6 @@ class ClaudeTarget(Target):
             # Could not determine status; skip check.
             return True
 
-        import json
         try:
             status = json.loads(result.stdout)
         except (json.JSONDecodeError, ValueError):

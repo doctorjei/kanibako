@@ -16,7 +16,8 @@ from kanibako.config import (
     unset_project_config_key,
     write_project_config_key,
 )
-from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.errors import UserCancelled
+from kanibako.paths import xdg, load_std_paths, resolve_project
 from kanibako.utils import confirm_prompt
 
 
@@ -72,7 +73,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)
@@ -154,7 +155,11 @@ def _clear_config(project_toml, proj) -> int:
         return 0
 
     print(f"This will clear all project-level config overrides for {proj.project_path}")
-    confirm_prompt("Type 'yes' to proceed: ")
+    try:
+        confirm_prompt("Type 'yes' to proceed: ")
+    except UserCancelled:
+        print("Aborted.", file=sys.stderr)
+        return 0
 
     for key in overrides:
         unset_project_config_key(project_toml, key)

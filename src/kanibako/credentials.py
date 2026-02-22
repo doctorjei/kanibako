@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
-from kanibako.utils import cp_if_newer, stderr
+from kanibako.utils import cp_if_newer
 
 
 def refresh_host_to_project(host_creds: Path, project_creds: Path) -> bool:
@@ -32,13 +33,13 @@ def refresh_host_to_project(host_creds: Path, project_creds: Path) -> bool:
     try:
         host_data = json.loads(host_creds.read_text())
     except (json.JSONDecodeError, OSError) as exc:
-        stderr(f"Warning: Cannot read host credentials: {exc}")
+        print(f"Warning: Cannot read host credentials: {exc}", file=sys.stderr)
         return False
 
     # Guard for missing key (known issue #2)
     oauth = host_data.get("claudeAiOauth")
     if oauth is None:
-        stderr("Warning: Host credentials missing 'claudeAiOauth' key; skipping merge.")
+        print("Warning: Host credentials missing 'claudeAiOauth' key; skipping merge.", file=sys.stderr)
         return False
 
     try:
@@ -67,7 +68,7 @@ def filter_settings(src: Path, dst: Path) -> None:
     try:
         data = json.loads(src.read_text())
     except (json.JSONDecodeError, OSError) as exc:
-        stderr(f"Warning: Cannot read {src}: {exc}")
+        print(f"Warning: Cannot read {src}: {exc}", file=sys.stderr)
         return
     filtered = {
         "oauthAccount": data.get("oauthAccount"),

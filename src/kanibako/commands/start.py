@@ -14,7 +14,7 @@ from kanibako.log import get_logger
 from kanibako.paths import (
     ProjectMode,
     _upgrade_shell,
-    _xdg,
+    xdg,
     load_std_paths,
     resolve_any_project,
 )
@@ -77,8 +77,12 @@ def add_resume_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "-c", "--command", "-E", "--entrypoint", dest="entrypoint", default=None,
+        "-c", "--command", dest="entrypoint", default=None,
         help="Use CMD as the container entrypoint",
+    )
+    parser.add_argument(
+        "-E", "--entrypoint", dest="entrypoint", default=None,
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "-p", "--project", default=None,
@@ -143,7 +147,7 @@ def _run_container(
     resume_mode: bool,
     extra_args: list[str],
 ) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
 
     try:
@@ -305,7 +309,7 @@ def _run_container(
 
         # Read per-project and global environment variables.
         from kanibako.shellenv import merge_env
-        global_env_path = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "env"
+        global_env_path = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "env"
         project_env_path = proj.metadata_path / "env"
         container_env = merge_env(global_env_path, project_env_path) or None
 

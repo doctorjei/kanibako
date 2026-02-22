@@ -53,6 +53,6 @@ def list_containerfile_suffixes(data_containers_dir: Path | None = None) -> list
     # User overrides
     if data_containers_dir is not None and data_containers_dir.is_dir():
         for cf in data_containers_dir.glob("Containerfile.*"):
-            suffixes.add(cf.suffix.lstrip("."))
+            suffixes.add(cf.name.split(".", 1)[1])
 
     return sorted(suffixes)

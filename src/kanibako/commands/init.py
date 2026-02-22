@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from kanibako.config import load_config
-from kanibako.paths import _xdg, load_std_paths, resolve_decentralized_project
+from kanibako.paths import xdg, load_std_paths, resolve_decentralized_project
 
 
 def add_init_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -61,7 +61,7 @@ def run_init(args: argparse.Namespace) -> int:
         )
         return 1
 
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -98,7 +98,7 @@ def run_new(args: argparse.Namespace) -> int:
 
     target.mkdir(parents=True)
 
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 

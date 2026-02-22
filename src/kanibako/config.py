@@ -226,6 +226,8 @@ def write_project_config_key(path: Path, flat_key: str, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         text = path.read_text()
+        # NOTE: This regex approach only handles quoted-string values and
+        # assumes key names are unique across TOML sections.
         # Replace existing key line
         if re.search(rf'^{re.escape(toml_key)}\s*=', text, re.MULTILINE):
             text = re.sub(

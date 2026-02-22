@@ -76,7 +76,7 @@ class ProjectPaths:
     vault_enabled: bool = field(default=True)
 
 
-def _xdg(env_var: str, default_suffix: str) -> Path:
+def xdg(env_var: str, default_suffix: str) -> Path:
     """Resolve an XDG directory from environment or default under $HOME."""
     val = os.environ.get(env_var, "")
     if val:
@@ -90,10 +90,10 @@ def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
     If *config* is None, it is loaded from the config file (which must exist).
     Directories are created as needed.
     """
-    config_home = _xdg("XDG_CONFIG_HOME", ".config")
-    data_home = _xdg("XDG_DATA_HOME", ".local/share")
-    state_home = _xdg("XDG_STATE_HOME", ".local/state")
-    cache_home = _xdg("XDG_CACHE_HOME", ".cache")
+    config_home = xdg("XDG_CONFIG_HOME", ".config")
+    data_home = xdg("XDG_DATA_HOME", ".local/share")
+    state_home = xdg("XDG_STATE_HOME", ".local/state")
+    cache_home = xdg("XDG_CACHE_HOME", ".cache")
 
     config_file = config_home / "kanibako" / "kanibako.toml"
 
@@ -361,7 +361,7 @@ def _ensure_vault_symlink(project_path: Path, vault_ro_path: Path) -> None:
         pass  # Best-effort; non-fatal if we can't create the symlink.
 
 
-def _init_project(
+def _init_common(
     std: StandardPaths,
     metadata_path: Path,
     shell_path: Path,
@@ -371,7 +371,13 @@ def _init_project(
     *,
     vault_enabled: bool = True,
 ) -> None:
-    """First-time project setup: create directories, copy credentials from host."""
+    """Shared first-time project setup: create directories, copy credentials from host.
+
+    This helper is called by both ``_init_project`` (account-centric) and
+    ``_init_decentralized_project``.  It performs every step common to both
+    modes: print message, create metadata and shell dirs, bootstrap the
+    shell, copy credentials, and set up vault directories when enabled.
+    """
     import sys
 
     print(
@@ -381,9 +387,6 @@ def _init_project(
         file=sys.stderr,
     )
     metadata_path.mkdir(parents=True, exist_ok=True)
-
-    # Record the original project path for reverse lookup.
-    (metadata_path / "project-path.txt").write_text(str(project_path) + "\n")
 
     # Create persistent agent shell (mounted as /home/agent).
     shell_path.mkdir(parents=True, exist_ok=True)
@@ -403,6 +406,26 @@ def _init_project(
             gitignore.write_text("share-rw/\n")
 
     print("done.", file=sys.stderr)
+
+
+def _init_project(
+    std: StandardPaths,
+    metadata_path: Path,
+    shell_path: Path,
+    vault_ro_path: Path,
+    vault_rw_path: Path,
+    project_path: Path,
+    *,
+    vault_enabled: bool = True,
+) -> None:
+    """First-time project setup: create directories, copy credentials from host."""
+    _init_common(
+        std, metadata_path, shell_path,
+        vault_ro_path, vault_rw_path, project_path,
+        vault_enabled=vault_enabled,
+    )
+    # Record the original project path for reverse lookup.
+    (metadata_path / "project-path.txt").write_text(str(project_path) + "\n")
 
 
 def _copy_credentials_from_host(shell_path: Path) -> None:
@@ -824,31 +847,8 @@ def _init_decentralized_project(
     *does* create vault directories and a ``.gitignore`` (vault lives inside
     the user's project, likely a git repo).
     """
-    import sys
-
-    print(
-        f"[One Time Setup] Initializing kanibako in {project_path}... ",
-        end="",
-        flush=True,
-        file=sys.stderr,
+    _init_common(
+        std, metadata_path, shell_path,
+        vault_ro_path, vault_rw_path, project_path,
+        vault_enabled=vault_enabled,
     )
-    metadata_path.mkdir(parents=True, exist_ok=True)
-
-    # Create persistent agent shell (mounted as /home/agent).
-    shell_path.mkdir(parents=True, exist_ok=True)
-    _bootstrap_shell(shell_path)
-
-    # Copy credentials directly from host.
-    _copy_credentials_from_host(shell_path)
-
-    # Vault directories (skip when vault is disabled).
-    if vault_enabled:
-        vault_ro_path.mkdir(parents=True, exist_ok=True)
-        vault_rw_path.mkdir(parents=True, exist_ok=True)
-        # .gitignore in vault/ to exclude share-rw from version control.
-        vault_dir = vault_ro_path.parent
-        gitignore = vault_dir / ".gitignore"
-        if not gitignore.exists():
-            gitignore.write_text("share-rw/\n")
-
-    print("done.", file=sys.stderr)

@@ -7,10 +7,7 @@ triggered before each container launch.
 
 from __future__ import annotations
 
-import os
 import shutil
-import subprocess
-import sys
 import tarfile
 from datetime import datetime, timezone
 from pathlib import Path

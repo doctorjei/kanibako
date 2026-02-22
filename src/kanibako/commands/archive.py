@@ -12,7 +12,7 @@ from pathlib import Path
 from kanibako.config import load_config
 from kanibako.errors import ArchiveError, GitError
 from kanibako.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
-from kanibako.paths import _xdg, load_std_paths, resolve_any_project
+from kanibako.paths import xdg, load_std_paths, resolve_any_project
 from kanibako.utils import short_hash
 
 
@@ -37,7 +37,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 

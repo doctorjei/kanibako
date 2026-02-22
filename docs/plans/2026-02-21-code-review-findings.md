@@ -150,7 +150,7 @@ Standing instruction #2 says `-E/--entrypoint` should be hidden from help. Curre
 8. **`utils.py`** — Either adopt `stderr()` helper codebase-wide or remove it and use `print(..., file=sys.stderr)` directly.
 9. **`box.py`** — Consider splitting into 3 files (~350 LOC each) if size becomes a maintenance burden.
 10. **`image.py`** — Simplify `elif not owner and image:` to `elif image:` (cosmetic).
-11. **`git.py`** — Use `X | None` instead of `Optional[X]` for style consistency.
+11. **`git.py`** — Use `X | None` instead of `Optional[X]` for style consistency. **DEFERRED** — requires broader discussion about codebase-wide typing convention.
 12. **`__main__.py`** — Add `if __name__ == "__main__":` guard.
 13. **`config_cmd.py`** — Add local `UserCancelled` handling in `_clear_config` for consistency.
 14. **`containerfiles.py`** — Align suffix extraction logic between bundled and override paths.

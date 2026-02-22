@@ -5,7 +5,6 @@ from __future__ import annotations
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from kanibako.errors import GitError
 
@@ -78,7 +77,7 @@ def check_unpushed(path: Path) -> None:
         )
 
 
-def get_metadata(path: Path) -> Optional[GitMetadata]:
+def get_metadata(path: Path) -> GitMetadata | None:
     """Extract git branch, HEAD SHA, and fetch remotes.  Returns None on failure."""
     branch_result = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],

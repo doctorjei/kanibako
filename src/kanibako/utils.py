@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
-import sys
 
 from kanibako.errors import UserCancelled
 
@@ -50,8 +49,3 @@ def short_hash(full_hash: str, length: int = 8) -> str:
 def project_hash(project_path: str) -> str:
     """SHA-256 hex digest of the project path string."""
     return hashlib.sha256(project_path.encode()).hexdigest()
-
-
-def stderr(*args: object, **kwargs: object) -> None:
-    """Print to stderr."""
-    print(*args, file=sys.stderr, **kwargs)  # type: ignore[arg-type]

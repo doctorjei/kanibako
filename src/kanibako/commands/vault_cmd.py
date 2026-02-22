@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from kanibako.config import load_config
-from kanibako.paths import _xdg, load_std_paths, resolve_any_project
+from kanibako.paths import xdg, load_std_paths, resolve_any_project
 from kanibako.snapshots import (
     _DEFAULT_MAX_SNAPSHOTS,
     auto_snapshot,
@@ -83,7 +83,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def _resolve_vault_rw(project_dir: str | None):
     """Resolve the vault share-rw path for the current project."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_any_project(std, config, project_dir, initialize=False)

@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from kanibako.config import load_config
-from kanibako.paths import _xdg
+from kanibako.paths import xdg
 from kanibako.targets import resolve_target
 
 
@@ -21,7 +21,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
 
     try:

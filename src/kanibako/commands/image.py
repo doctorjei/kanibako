@@ -13,7 +13,7 @@ from kanibako.config import load_config, load_merged_config
 from kanibako.container import ContainerRuntime
 from kanibako.containerfiles import get_containerfile, list_containerfile_suffixes
 from kanibako.errors import ContainerError
-from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.paths import xdg, load_std_paths, resolve_project
 
 
 # Descriptions for known Containerfile variants.
@@ -75,7 +75,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_list(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)
@@ -119,7 +119,7 @@ def run_list(args: argparse.Namespace) -> int:
     print("Remote registry images:")
     if owner:
         _list_remote_packages(owner)
-    elif not owner and image:
+    elif image:
         print(f"  (registry owner not detected from image: {image})")
     else:
         print("  (image not configured)")
@@ -202,7 +202,7 @@ def resolve_image_name(name: str, configured_image: str) -> str:
 
 def run_rebuild(args: argparse.Namespace) -> int:
     """Update container image(s): pull from registry (default) or build locally."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
     containers_dir = std.data_path / "containers"

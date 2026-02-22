@@ -17,7 +17,7 @@ from kanibako.config import (
 from kanibako.container import ContainerRuntime
 from kanibako.containerfiles import get_containerfile
 from kanibako.errors import ContainerError
-from kanibako.paths import _xdg
+from kanibako.paths import xdg
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -31,7 +31,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_home = _xdg("XDG_CONFIG_HOME", ".config")
+    config_home = xdg("XDG_CONFIG_HOME", ".config")
     config_file = config_home / "kanibako" / "kanibako.toml"
 
     # ------------------------------------------------------------------
@@ -49,7 +49,7 @@ def run(args: argparse.Namespace) -> int:
     # ------------------------------------------------------------------
     # 2. Create containers directory for user overrides
     # ------------------------------------------------------------------
-    data_home = _xdg("XDG_DATA_HOME", ".local/share")
+    data_home = xdg("XDG_DATA_HOME", ".local/share")
     data_path = data_home / config.paths_relative_std_path
     containers_dest = data_path / "containers"
     containers_dest.mkdir(parents=True, exist_ok=True)
@@ -88,7 +88,7 @@ def run(args: argparse.Namespace) -> int:
 
 def _install_completion() -> None:
     """Register bash/zsh completion for kanibako via argcomplete."""
-    completions_dir = _xdg("XDG_DATA_HOME", ".local/share") / "bash-completion" / "completions"
+    completions_dir = xdg("XDG_DATA_HOME", ".local/share") / "bash-completion" / "completions"
     completions_dir.mkdir(parents=True, exist_ok=True)
     target = completions_dir / "kanibako"
 

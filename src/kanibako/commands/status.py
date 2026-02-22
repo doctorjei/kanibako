@@ -13,7 +13,7 @@ from kanibako.container import ContainerRuntime
 from kanibako.errors import ContainerError, ProjectError
 from kanibako.paths import (
     ProjectMode,
-    _xdg,
+    xdg,
     detect_project_mode,
     load_std_paths,
     resolve_any_project,
@@ -75,7 +75,7 @@ def _check_container_running(project_hash: str) -> tuple[bool, str]:
 
 
 def run_status(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
 
     try:

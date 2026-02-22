@@ -25,10 +25,6 @@ class GitError(KanibakoError):
     """Git check failed (uncommitted changes, unpushed commits, etc.)."""
 
 
-class CredentialError(KanibakoError):
-    """Credential copy or merge failed."""
-
-
 class WorksetError(KanibakoError):
     """Workset creation, loading, or manipulation failed."""
 

@@ -25,7 +25,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_parser,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -40,7 +40,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_parser,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -55,7 +55,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_parser,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -70,7 +70,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_parser,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -85,7 +85,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_parser,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             args = MagicMock()
@@ -101,7 +101,7 @@ class TestMainExitCodes:
 
         with (
             patch("kanibako.cli.build_parser") as mock_bp,
-            patch("kanibako.paths._xdg", side_effect=_fake_xdg),
+            patch("kanibako.paths.xdg", side_effect=_fake_xdg),
             pytest.raises(SystemExit) as exc_info,
         ):
             parser = MagicMock()

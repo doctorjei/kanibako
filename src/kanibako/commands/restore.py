@@ -13,7 +13,7 @@ from pathlib import Path
 from kanibako.config import load_config
 from kanibako.errors import ArchiveError, UserCancelled
 from kanibako.git import is_git_repo
-from kanibako.paths import _xdg, load_std_paths, resolve_any_project
+from kanibako.paths import xdg, load_std_paths, resolve_any_project
 from kanibako.utils import confirm_prompt
 
 
@@ -34,7 +34,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -136,7 +136,7 @@ def _restore_one(std, config, *, project_dir, archive_file, force) -> int:
 
 
 def _peek_archive_info(archive_file: Path) -> dict[str, str] | None:
-    """Extract and parse the info file from an archive without full extraction."""
+    """Extract archive to a temp dir and parse the info file."""
     temp_dir = tempfile.mkdtemp()
     try:
         try:

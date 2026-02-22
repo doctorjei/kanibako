@@ -8,7 +8,7 @@ from pathlib import Path
 
 from kanibako.config import load_config
 from kanibako.errors import WorksetError
-from kanibako.paths import _xdg, load_std_paths
+from kanibako.paths import xdg, load_std_paths
 from kanibako.utils import confirm_prompt
 from kanibako.workset import (
     add_project,
@@ -111,7 +111,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def _load_std():
     """Load config and standard paths."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     return load_std_paths(config)
 

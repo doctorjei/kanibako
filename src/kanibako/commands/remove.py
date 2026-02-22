@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from kanibako.config import load_config
-from kanibako.paths import _xdg
+from kanibako.paths import xdg
 from kanibako.utils import confirm_prompt
 
 
@@ -22,7 +22,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_home = _xdg("XDG_CONFIG_HOME", ".config")
+    config_home = xdg("XDG_CONFIG_HOME", ".config")
     config_file = config_home / "kanibako" / "kanibako.toml"
     config_dir = config_file.parent
 
@@ -35,7 +35,7 @@ def run(args: argparse.Namespace) -> int:
         except Exception:
             pass
 
-    data_home = _xdg("XDG_DATA_HOME", ".local/share")
+    data_home = xdg("XDG_DATA_HOME", ".local/share")
     data_path = data_home / rel_std_path
 
     # Confirmation prompt before destructive action

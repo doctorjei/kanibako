@@ -8,7 +8,7 @@ import sys
 from kanibako.config import load_config
 from kanibako.container import ContainerRuntime
 from kanibako.errors import ContainerError
-from kanibako.paths import _xdg, load_std_paths, resolve_project
+from kanibako.paths import xdg, load_std_paths, resolve_any_project
 from kanibako.utils import short_hash
 
 
@@ -44,11 +44,11 @@ def run(args: argparse.Namespace) -> int:
 
 def _stop_one(runtime: ContainerRuntime, *, project_dir: str | None) -> int:
     """Stop the container for a single project."""
-    config_file = _xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
     config = load_config(config_file)
     std = load_std_paths(config)
 
-    proj = resolve_project(std, config, project_dir=project_dir, initialize=False)
+    proj = resolve_any_project(std, config, project_dir, initialize=False)
     container_name = f"kanibako-{short_hash(proj.project_hash)}"
 
     lock_file = proj.metadata_path / ".kanibako.lock"

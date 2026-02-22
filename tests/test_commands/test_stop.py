@@ -22,7 +22,7 @@ class TestStopOne:
         with (
             patch("kanibako.commands.stop.load_config"),
             patch("kanibako.commands.stop.load_std_paths"),
-            patch("kanibako.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.resolve_any_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
@@ -39,7 +39,7 @@ class TestStopOne:
         with (
             patch("kanibako.commands.stop.load_config"),
             patch("kanibako.commands.stop.load_std_paths"),
-            patch("kanibako.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.resolve_any_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
@@ -60,17 +60,17 @@ class TestStopOne:
         with (
             patch("kanibako.commands.stop.load_config"),
             patch("kanibako.commands.stop.load_std_paths"),
-            patch("kanibako.commands.stop.resolve_project") as m_resolve,
+            patch("kanibako.commands.stop.resolve_any_project") as m_resolve,
         ):
             proj = MagicMock()
             proj.project_hash = "abcdef1234567890" * 4
             m_resolve.return_value = proj
 
             _stop_one(mock_runtime, project_dir="/some/path")
-            # resolve_project called with the given path
-            call_kwargs = m_resolve.call_args
-            assert call_kwargs[1]["project_dir"] == "/some/path"
-            assert call_kwargs[1]["initialize"] is False
+            # resolve_any_project called with the given path (positional)
+            call_args = m_resolve.call_args
+            assert call_args[0][2] == "/some/path"
+            assert call_args[1]["initialize"] is False
 
 
 class TestStopAll:
