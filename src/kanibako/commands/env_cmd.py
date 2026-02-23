@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.paths import xdg, load_std_paths, resolve_any_project
 from kanibako.shellenv import merge_env, set_env_var, unset_env_var
 
@@ -83,11 +83,11 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def _resolve_env_paths(project_dir: str | None):
     """Return (global_env_path, project_env_path)."""
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_any_project(std, config, project_dir, initialize=False)
-    global_env = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "env"
+    global_env = std.data_path / "env"
     project_env = proj.metadata_path / "env"
     return global_env, project_env
 

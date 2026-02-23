@@ -6,11 +6,12 @@ import argparse
 import sys
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.errors import WorksetError
 from kanibako.paths import xdg, load_std_paths
 from kanibako.utils import confirm_prompt
 from kanibako.workset import (
+    _write_workset_toml,
     add_project,
     create_workset,
     delete_workset,
@@ -105,13 +106,27 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
     info_p.add_argument("name", help="Name of the working set")
     info_p.set_defaults(func=run_info)
 
+    # kanibako workset auth <name> [shared|distinct]
+    auth_p = ws_sub.add_parser(
+        "auth",
+        help="Show or change workset auth mode",
+        description="Show or change auth mode for a working set. "
+        "'shared' syncs credentials from host; 'distinct' uses per-workset credentials.",
+    )
+    auth_p.add_argument("name", help="Name of the working set")
+    auth_p.add_argument(
+        "auth_mode", nargs="?", default=None, choices=["shared", "distinct"],
+        help="New auth mode (omit to show current)",
+    )
+    auth_p.set_defaults(func=run_auth)
+
     # Default to list if no subcommand given.
     p.set_defaults(func=run_list)
 
 
 def _load_std():
     """Load config and standard paths."""
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     return load_std_paths(config)
 
@@ -239,10 +254,49 @@ def run_info(args: argparse.Namespace) -> int:
     print(f"Name:     {ws.name}")
     print(f"Root:     {ws.root}")
     print(f"Created:  {ws.created}")
+    print(f"Auth:     {ws.auth}")
     if ws.projects:
         print(f"Projects: {len(ws.projects)}")
         for proj in ws.projects:
             print(f"  - {proj.name}  ({proj.source_path})")
     else:
         print("Projects: (none)")
+    return 0
+
+
+def run_auth(args: argparse.Namespace) -> int:
+    std = _load_std()
+    registry = list_worksets(std)
+    if args.name not in registry:
+        print(f"Error: Working set '{args.name}' is not registered.", file=sys.stderr)
+        return 1
+
+    try:
+        ws = load_workset(registry[args.name])
+    except WorksetError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    if args.auth_mode is None:
+        # Show current auth mode.
+        print(ws.auth)
+        return 0
+
+    old_auth = ws.auth
+    ws.auth = args.auth_mode
+    _write_workset_toml(ws)
+
+    if args.auth_mode == "distinct" and old_auth != "distinct":
+        # Invalidate credentials in all project shells.
+        from kanibako.credentials import invalidate_credentials
+        for proj in ws.projects:
+            shell_path = ws.projects_dir / proj.name / "shell"
+            if shell_path.is_dir():
+                invalidate_credentials(shell_path)
+        print(
+            f"Set auth mode to 'distinct' for '{ws.name}'. "
+            f"Credentials cleared in {len(ws.projects)} project(s).",
+        )
+    else:
+        print(f"Set auth mode to '{args.auth_mode}' for '{ws.name}'.")
     return 0

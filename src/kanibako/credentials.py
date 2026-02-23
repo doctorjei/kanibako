@@ -63,6 +63,18 @@ def writeback_project_to_host(project_creds: Path) -> None:
     cp_if_newer(project_creds, host_creds)
 
 
+def invalidate_credentials(shell_path: Path) -> None:
+    """Remove credential files from a shell directory.
+
+    Used when switching to distinct auth mode — forces fresh login on next launch.
+    """
+    creds = shell_path / ".claude" / ".credentials.json"
+    settings = shell_path / ".claude.json"
+    for f in (creds, settings):
+        if f.is_file():
+            f.unlink()
+
+
 def filter_settings(src: Path, dst: Path) -> None:
     """Copy host .claude.json with only safe keys (replaces jq filter)."""
     try:

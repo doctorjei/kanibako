@@ -9,6 +9,7 @@ import time
 
 from kanibako.credentials import (
     filter_settings,
+    invalidate_credentials,
     refresh_host_to_project,
     writeback_project_to_host,
 )
@@ -248,3 +249,33 @@ class TestFilterSettingsExtended:
         data = json.loads(dst.read_text())
         # Only hasCompletedOnboarding (always True) should be present
         assert data == {"hasCompletedOnboarding": True}
+
+
+class TestInvalidateCredentials:
+    def test_removes_credential_files(self, tmp_path):
+        shell = tmp_path / "shell"
+        claude_dir = shell / ".claude"
+        claude_dir.mkdir(parents=True)
+        creds = claude_dir / ".credentials.json"
+        creds.write_text('{"claudeAiOauth": {"token": "t"}}')
+        settings = shell / ".claude.json"
+        settings.write_text('{"oauthAccount": "a"}')
+
+        invalidate_credentials(shell)
+        assert not creds.exists()
+        assert not settings.exists()
+
+    def test_noop_when_no_files(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        # Should not raise
+        invalidate_credentials(shell)
+
+    def test_partial_files(self, tmp_path):
+        shell = tmp_path / "shell"
+        shell.mkdir()
+        settings = shell / ".claude.json"
+        settings.write_text('{"oauthAccount": "a"}')
+
+        invalidate_credentials(shell)
+        assert not settings.exists()

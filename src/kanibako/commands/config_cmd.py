@@ -9,6 +9,7 @@ from dataclasses import fields
 from kanibako.config import (
     KanibakoConfig,
     _DEFAULTS,
+    config_file_path,
     config_keys,
     load_config,
     load_merged_config,
@@ -73,7 +74,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)

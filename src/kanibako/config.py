@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass, fields
 from pathlib import Path
 
@@ -15,12 +16,25 @@ import tomllib
 # ---------------------------------------------------------------------------
 
 _DEFAULTS = {
-    "paths_relative_std_path": "kanibako",
-    "paths_settings_path": "settings",
-    "paths_dot_path": "dotclaude",
-    "paths_cfg_file": "claude.json",
+    "paths_data_path": "",
+    "paths_agents": "agents",
+    "paths_boxes": "boxes",
+    "paths_project_toml": "project.toml",
+    "paths_shared": "shared",
+    "paths_shell": "shell",
+    "paths_templates": "templates",
+    "paths_vault": "vault",
+    "paths_workspaces": "workspaces",
+    "paths_ws_hints": "working_sets.toml",
     "container_image": "ghcr.io/doctorjei/kanibako-base:latest",
     "target_name": "",
+}
+
+# Backward-compat aliases: old field name -> new field name.
+# Applied during load_config() so old TOML files still work.
+_FIELD_ALIASES: dict[str, str] = {
+    "paths_relative_std_path": "paths_data_path",
+    "paths_settings_path": "paths_boxes",
 }
 
 
@@ -28,10 +42,16 @@ _DEFAULTS = {
 class KanibakoConfig:
     """Merged configuration (hardcoded defaults < kanibako.toml < project.toml < CLI)."""
 
-    paths_relative_std_path: str = _DEFAULTS["paths_relative_std_path"]
-    paths_settings_path: str = _DEFAULTS["paths_settings_path"]
-    paths_dot_path: str = _DEFAULTS["paths_dot_path"]
-    paths_cfg_file: str = _DEFAULTS["paths_cfg_file"]
+    paths_data_path: str = _DEFAULTS["paths_data_path"]
+    paths_agents: str = _DEFAULTS["paths_agents"]
+    paths_boxes: str = _DEFAULTS["paths_boxes"]
+    paths_project_toml: str = _DEFAULTS["paths_project_toml"]
+    paths_shared: str = _DEFAULTS["paths_shared"]
+    paths_shell: str = _DEFAULTS["paths_shell"]
+    paths_templates: str = _DEFAULTS["paths_templates"]
+    paths_vault: str = _DEFAULTS["paths_vault"]
+    paths_workspaces: str = _DEFAULTS["paths_workspaces"]
+    paths_ws_hints: str = _DEFAULTS["paths_ws_hints"]
     container_image: str = _DEFAULTS["container_image"]
     target_name: str = _DEFAULTS["target_name"]
 
@@ -39,7 +59,7 @@ class KanibakoConfig:
 def _flatten_toml(data: dict, prefix: str = "") -> dict[str, str]:
     """Flatten nested TOML dict into underscore-joined keys.
 
-    ``{"paths": {"dot_path": "x"}}`` → ``{"paths_dot_path": "x"}``
+    ``{"paths": {"boxes": "x"}}`` → ``{"paths_boxes": "x"}``
     """
     out: dict[str, str] = {}
     for k, v in data.items():
@@ -51,6 +71,48 @@ def _flatten_toml(data: dict, prefix: str = "") -> dict[str, str]:
     return out
 
 
+def config_file_path(config_home: Path) -> Path:
+    """Return the path to kanibako.toml, checking new then old location.
+
+    New: ``$XDG_CONFIG_HOME/kanibako.toml``
+    Old: ``$XDG_CONFIG_HOME/kanibako/kanibako.toml``
+
+    Returns the new path if neither exists (for first-time setup).
+    """
+    new_path = config_home / "kanibako.toml"
+    if new_path.exists():
+        return new_path
+    old_path = config_home / "kanibako" / "kanibako.toml"
+    if old_path.exists():
+        return old_path
+    return new_path
+
+
+def migrate_config(config_home: Path) -> Path:
+    """Migrate config file from old location to new, if needed.
+
+    Returns the final config file path (new location).
+    Prints a notice to stderr when migration occurs.
+    """
+    new_path = config_home / "kanibako.toml"
+    old_path = config_home / "kanibako" / "kanibako.toml"
+    if old_path.exists() and not new_path.exists():
+        import shutil
+        shutil.move(str(old_path), str(new_path))
+        print(
+            f"Migrated config: {old_path} → {new_path}",
+            file=sys.stderr,
+        )
+        # Remove empty old config dir if it's now empty.
+        old_dir = old_path.parent
+        try:
+            if old_dir.is_dir() and not any(old_dir.iterdir()):
+                old_dir.rmdir()
+        except OSError:
+            pass
+    return new_path
+
+
 def load_config(path: Path) -> KanibakoConfig:
     """Read a single TOML file and return a KanibakoConfig with defaults filled in."""
     cfg = KanibakoConfig()
@@ -60,6 +122,8 @@ def load_config(path: Path) -> KanibakoConfig:
         flat = _flatten_toml(data)
         valid_keys = {fld.name for fld in fields(cfg)}
         for k, v in flat.items():
+            # Apply backward-compat aliases.
+            k = _FIELD_ALIASES.get(k, k)
             if k in valid_keys:
                 setattr(cfg, k, v)
     return cfg
@@ -102,10 +166,10 @@ def write_global_config(path: Path, cfg: KanibakoConfig | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "[paths]",
-        f'relative_std_path = "{cfg.paths_relative_std_path}"',
-        f'settings_path = "{cfg.paths_settings_path}"',
-        f'dot_path = "{cfg.paths_dot_path}"',
-        f'cfg_file = "{cfg.paths_cfg_file}"',
+        f'data_path = "{cfg.paths_data_path}"',
+        f'boxes = "{cfg.paths_boxes}"',
+        f'shell = "{cfg.paths_shell}"',
+        f'vault = "{cfg.paths_vault}"',
         "",
         "[container]",
         f'image = "{cfg.container_image}"',
@@ -129,6 +193,7 @@ def write_project_meta(
     vault_ro: str,
     vault_rw: str,
     vault_enabled: bool = True,
+    auth: str = "shared",
 ) -> None:
     """Write resolved project metadata to project.toml, preserving other sections."""
     existing: dict = {}
@@ -136,12 +201,15 @@ def write_project_meta(
         with open(path, "rb") as f:
             existing = tomllib.load(f)
 
-    existing["project"] = {"mode": mode, "layout": layout, "vault_enabled": vault_enabled}
-    existing.setdefault("paths", {})
-    existing["paths"]["workspace"] = workspace
-    existing["paths"]["shell"] = shell
-    existing["paths"]["vault_ro"] = vault_ro
-    existing["paths"]["vault_rw"] = vault_rw
+    existing["project"] = {
+        "mode": mode, "layout": layout,
+        "vault_enabled": vault_enabled, "auth": auth,
+    }
+    existing.setdefault("resolved", {})
+    existing["resolved"]["workspace"] = workspace
+    existing["resolved"]["shell"] = shell
+    existing["resolved"]["vault_ro"] = vault_ro
+    existing["resolved"]["vault_rw"] = vault_rw
 
     _write_toml(path, existing)
 
@@ -158,19 +226,22 @@ def read_project_meta(path: Path) -> dict | None:
         data = tomllib.load(f)
 
     project_sec = data.get("project", {})
-    paths_sec = data.get("paths", {})
+    # Support both old ("paths") and new ("resolved") section names.
+    resolved_sec = data.get("resolved", data.get("paths", {}))
 
     if not project_sec.get("mode"):
         return None
 
     return {
         "mode": project_sec["mode"],
-        "layout": project_sec.get("layout", ""),
+        # Backward compat: "tree" was renamed to "robust" in v0.6.0.
+        "layout": "robust" if project_sec.get("layout") == "tree" else project_sec.get("layout", ""),
         "vault_enabled": project_sec.get("vault_enabled", True),
-        "workspace": paths_sec.get("workspace", ""),
-        "shell": paths_sec.get("shell", ""),
-        "vault_ro": paths_sec.get("vault_ro", ""),
-        "vault_rw": paths_sec.get("vault_rw", ""),
+        "auth": project_sec.get("auth", "shared"),
+        "workspace": resolved_sec.get("workspace", ""),
+        "shell": resolved_sec.get("shell", ""),
+        "vault_ro": resolved_sec.get("vault_ro", ""),
+        "vault_rw": resolved_sec.get("vault_rw", ""),
     }
 
 

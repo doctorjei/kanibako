@@ -8,7 +8,7 @@ import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.errors import GitError
 from kanibako.git import check_uncommitted, check_unpushed, get_metadata, is_git_repo
 from kanibako.paths import xdg, load_std_paths, resolve_any_project
@@ -36,7 +36,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 

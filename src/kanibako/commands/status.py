@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from kanibako.config import load_config, load_merged_config
+from kanibako.config import config_file_path, load_config, load_merged_config
 from kanibako.container import ContainerRuntime
 from kanibako.errors import ContainerError, ProjectError
 from kanibako.paths import (
@@ -74,7 +74,7 @@ def _check_container_running(project_hash: str) -> tuple[bool, str]:
 
 
 def run_status(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
 
     try:

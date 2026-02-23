@@ -9,7 +9,14 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from kanibako.config import KanibakoConfig, load_config, read_project_meta, write_project_meta
+from kanibako.config import (
+    KanibakoConfig,
+    config_file_path,
+    load_config,
+    migrate_config,
+    read_project_meta,
+    write_project_meta,
+)
 from kanibako.errors import ConfigError, ProjectError, WorksetError
 from kanibako.utils import project_hash
 
@@ -29,19 +36,19 @@ class ProjectLayout(Enum):
     """Directory layout variant within a project mode.
 
     - **simple**: shell and vault live inside the workspace (minimal footprint)
-    - **default**: shell in settings, vault in workspace (middle ground)
-    - **tree**: full separation — all four folders are top-level siblings
+    - **default**: shell in boxes, vault in workspace (middle ground)
+    - **robust**: full separation — all four folders are top-level siblings
     """
 
     simple = "simple"
     default = "default"
-    tree = "tree"
+    robust = "robust"
 
 
 # Default layout per mode.
 _DEFAULT_LAYOUT = {
     ProjectMode.account_centric: ProjectLayout.default,
-    ProjectMode.workset: ProjectLayout.tree,
+    ProjectMode.workset: ProjectLayout.robust,
     ProjectMode.decentralized: ProjectLayout.simple,
 }
 
@@ -74,6 +81,7 @@ class ProjectPaths:
     mode: ProjectMode = field(default=ProjectMode.account_centric)
     layout: ProjectLayout = field(default=ProjectLayout.default)
     vault_enabled: bool = field(default=True)
+    auth: str = field(default="shared")
 
 
 def xdg(env_var: str, default_suffix: str) -> Path:
@@ -82,6 +90,28 @@ def xdg(env_var: str, default_suffix: str) -> Path:
     if val:
         return Path(val).resolve()
     return Path.home() / default_suffix
+
+
+def _migrate_global_env(config_home: Path, data_path: Path) -> None:
+    """Move global env file from old config_home/kanibako/env to data_path/env."""
+    old = config_home / "kanibako" / "env"
+    new = data_path / "env"
+    if old.is_file() and not new.exists():
+        import shutil
+        data_path.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(old), str(new))
+        import sys
+        print(f"Migrated: {old} → {new}", file=sys.stderr)
+
+
+def _migrate_settings_to_boxes(data_path: Path) -> None:
+    """Rename ``data_path/settings`` to ``data_path/boxes`` if needed."""
+    old = data_path / "settings"
+    new = data_path / "boxes"
+    if old.is_dir() and not new.exists():
+        old.rename(new)
+        import sys
+        print(f"Migrated: {old} → {new}", file=sys.stderr)
 
 
 def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
@@ -95,26 +125,27 @@ def load_std_paths(config: KanibakoConfig | None = None) -> StandardPaths:
     state_home = xdg("XDG_STATE_HOME", ".local/state")
     cache_home = xdg("XDG_CACHE_HOME", ".cache")
 
-    config_file = config_home / "kanibako" / "kanibako.toml"
+    # Migrate config file from old subdir location if needed.
+    migrate_config(config_home)
+    config_file = config_file_path(config_home)
 
     if config is None:
         if not config_file.exists():
-            # Check for legacy .rc file
-            legacy = config_file.with_name("kanibako.rc")
-            if legacy.exists():
-                raise ConfigError(
-                    f"Legacy config {legacy} found but no kanibako.toml. "
-                    "Run 'kanibako setup' to migrate."
-                )
             raise ConfigError(
                 f"{config_file} is missing. Run 'kanibako setup' to set up."
             )
         config = load_config(config_file)
 
-    rel = config.paths_relative_std_path
+    rel = config.paths_data_path or "kanibako"
     data_path = data_home / rel
     state_path = state_home / rel
     cache_path = cache_home / rel
+
+    # Migrate settings/ -> boxes/ if needed.
+    _migrate_settings_to_boxes(data_path)
+
+    # Migrate global env file from config_home/kanibako/env to data_path/env.
+    _migrate_global_env(config_home, data_path)
 
     # Ensure directories exist.
     config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -162,7 +193,7 @@ def resolve_project(
         raise ProjectError(f"Project path '{project_path}' does not exist.")
 
     phash = project_hash(str(project_path))
-    project_dir_path = std.data_path / "settings" / phash
+    project_dir_path = std.data_path / "boxes" / phash
     metadata_path = project_dir_path
 
     # Check for stored paths in project.toml (enables user overrides).
@@ -235,7 +266,7 @@ def _compute_ac_paths(
         shell = project_path / ".shell"
         vault_ro = project_path / "vault" / "share-ro"
         vault_rw = project_path / "vault" / "share-rw"
-    elif layout == ProjectLayout.tree:
+    elif layout == ProjectLayout.robust:
         shell = metadata_path / "shell"
         vault_ro = metadata_path / "vault" / "share-ro"
         vault_rw = metadata_path / "vault" / "share-rw"
@@ -266,7 +297,7 @@ def _compute_decentral_paths(
     layout: ProjectLayout, metadata_path: Path, project_path: Path,
 ) -> tuple[Path, Path, Path]:
     """Compute (shell, vault_ro, vault_rw) for decentralized mode."""
-    if layout == ProjectLayout.tree:
+    if layout == ProjectLayout.robust:
         shell = project_path / "shell"
         vault_ro = project_path / "vault" / "share-ro"
         vault_rw = project_path / "vault" / "share-rw"
@@ -370,6 +401,7 @@ def _init_common(
     project_path: Path,
     *,
     vault_enabled: bool = True,
+    skip_credentials: bool = False,
 ) -> None:
     """Shared first-time project setup: create directories, copy credentials from host.
 
@@ -392,8 +424,9 @@ def _init_common(
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
 
-    # Copy credentials directly from host.
-    _copy_credentials_from_host(shell_path)
+    # Copy credentials directly from host (skip for distinct auth).
+    if not skip_credentials:
+        _copy_credentials_from_host(shell_path)
 
     # Vault directories (skip when vault is disabled).
     if vault_enabled:
@@ -483,7 +516,7 @@ def detect_project_mode(
 
     # 2. Account-centric: settings/{hash}/ already exists
     phash = project_hash(str(project_dir))
-    settings_path = std.data_path / "settings" / phash
+    settings_path = std.data_path / "boxes" / phash
     if settings_path.is_dir():
         return ProjectMode.account_centric
 
@@ -541,6 +574,11 @@ def resolve_workset_project(
         )
         actual_vault_enabled = vault_enabled if vault_enabled is not None else True
 
+    # Auth mode: workset-level overrides project-level.
+    actual_auth = getattr(ws, "auth", "shared")
+    if actual_auth == "shared" and meta:
+        actual_auth = meta.get("auth", "shared")
+
     # Hash the resolved workspace path for container naming.
     phash = project_hash(str(project_path.resolve()))
 
@@ -556,6 +594,7 @@ def resolve_workset_project(
             vault_ro=str(vault_ro_path),
             vault_rw=str(vault_rw_path),
             vault_enabled=actual_vault_enabled,
+            auth=actual_auth,
         )
         is_new = True
 
@@ -579,6 +618,7 @@ def resolve_workset_project(
         mode=ProjectMode.workset,
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
+        auth=actual_auth,
     )
 
 
@@ -620,7 +660,7 @@ def iter_projects(std: StandardPaths, config: KanibakoConfig) -> list[tuple[Path
     *project_path* is read from the ``project-path.txt`` breadcrumb when
     available; otherwise it is ``None``.
     """
-    projects_dir = std.data_path / "settings"
+    projects_dir = std.data_path / "boxes"
     if not projects_dir.is_dir():
         return []
     results: list[tuple[Path, Path | None]] = []
@@ -737,6 +777,7 @@ def resolve_decentralized_project(
     initialize: bool = False,
     layout: ProjectLayout | None = None,
     vault_enabled: bool | None = None,
+    auth: str | None = None,
 ) -> ProjectPaths:
     """Resolve (and optionally initialize) per-project paths for decentralized mode.
 
@@ -770,7 +811,7 @@ def resolve_decentralized_project(
     else:
         # New project — determine layout and metadata_path.
         actual_layout = layout or _DEFAULT_LAYOUT[ProjectMode.decentralized]
-        if actual_layout == ProjectLayout.tree:
+        if actual_layout == ProjectLayout.robust:
             metadata_path = nodot_meta
         else:
             metadata_path = dot_meta
@@ -791,12 +832,16 @@ def resolve_decentralized_project(
 
     project_toml = metadata_path / "project.toml"
 
+    # Auth mode for decentralized: explicit param > meta > default.
+    actual_auth = auth or (meta.get("auth", "shared") if meta else "shared")
+
     is_new = False
     if initialize and not metadata_path.is_dir():
         _init_decentralized_project(
             std, metadata_path, shell_path,
             vault_ro_path, vault_rw_path, project_path,
             vault_enabled=actual_vault_enabled,
+            skip_credentials=(actual_auth == "distinct"),
         )
         write_project_meta(
             project_toml,
@@ -807,6 +852,7 @@ def resolve_decentralized_project(
             vault_ro=str(vault_ro_path),
             vault_rw=str(vault_rw_path),
             vault_enabled=actual_vault_enabled,
+            auth=actual_auth,
         )
         is_new = True
 
@@ -827,6 +873,7 @@ def resolve_decentralized_project(
         mode=ProjectMode.decentralized,
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
+        auth=actual_auth,
     )
 
 
@@ -839,6 +886,7 @@ def _init_decentralized_project(
     project_path: Path,
     *,
     vault_enabled: bool = True,
+    skip_credentials: bool = False,
 ) -> None:
     """First-time decentralized project setup: all state inside project dir.
 
@@ -851,4 +899,5 @@ def _init_decentralized_project(
         std, metadata_path, shell_path,
         vault_ro_path, vault_rw_path, project_path,
         vault_enabled=vault_enabled,
+        skip_credentials=skip_credentials,
     )

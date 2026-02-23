@@ -191,3 +191,54 @@ class TestInitNoVault:
         assert rc == 0
         assert (project / "vault" / "share-ro").is_dir()
         assert (project / "vault" / "share-rw").is_dir()
+
+
+class TestInitDistinctAuth:
+    """Tests for --distinct-auth flag on init / new."""
+
+    def test_init_distinct_auth_skips_creds(
+        self, config_file, tmp_home, credentials_dir, capsys,
+    ):
+        project = tmp_home / "distinct-project"
+        project.mkdir()
+        parser = build_parser()
+        args = parser.parse_args(["init", "--local", "-p", str(project), "--distinct-auth"])
+        rc = run_init(args)
+
+        assert rc == 0
+        shell = project / ".kanibako" / "shell"
+        assert shell.is_dir()
+        # Credentials should NOT have been copied from host.
+        assert not (shell / ".claude" / ".credentials.json").exists()
+
+    def test_init_distinct_auth_sets_meta(
+        self, config_file, tmp_home, credentials_dir, capsys,
+    ):
+        from kanibako.config import read_project_meta
+        project = tmp_home / "distinct-meta"
+        project.mkdir()
+        parser = build_parser()
+        args = parser.parse_args(["init", "--local", "-p", str(project), "--distinct-auth"])
+        run_init(args)
+
+        meta = read_project_meta(project / ".kanibako" / "project.toml")
+        assert meta is not None
+        assert meta["auth"] == "distinct"
+
+    def test_parser_accepts_distinct_auth(self):
+        parser = build_parser()
+        args = parser.parse_args(["init", "--local", "--distinct-auth"])
+        assert args.distinct_auth is True
+
+    def test_new_distinct_auth(
+        self, config_file, tmp_home, credentials_dir, capsys,
+    ):
+        target = tmp_home / "distinct-new"
+        parser = build_parser()
+        args = parser.parse_args(["new", "--local", str(target), "--distinct-auth"])
+        rc = run_new(args)
+
+        assert rc == 0
+        shell = target / ".kanibako" / "shell"
+        assert shell.is_dir()
+        assert not (shell / ".claude" / ".credentials.json").exists()

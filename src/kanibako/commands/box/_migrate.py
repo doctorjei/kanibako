@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.paths import (
     ProjectMode,
     _find_workset_for_path,
@@ -24,7 +24,7 @@ from kanibako.utils import confirm_prompt, project_hash, short_hash
 def run_migrate(args: argparse.Namespace) -> int:
     import os
 
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -55,7 +55,7 @@ def run_migrate(args: argparse.Namespace) -> int:
     old_hash = project_hash(str(old_path))
     new_hash = project_hash(str(new_path))
 
-    projects_base = std.data_path / "settings"
+    projects_base = std.data_path / "boxes"
     old_project_dir = projects_base / old_hash
     new_project_dir = projects_base / new_hash
 
@@ -235,7 +235,7 @@ def _convert_ac_to_decentral(project_path, std, config, proj):
 def _convert_decentral_to_ac(project_path, std, config, proj):
     """Convert a decentralized project to account-centric layout."""
     phash = project_hash(str(project_path))
-    settings_base = std.data_path / "settings"
+    settings_base = std.data_path / "boxes"
     dst_project = settings_base / phash
 
     # Copy metadata (excluding lock file and shell/).
@@ -439,7 +439,7 @@ def _convert_from_workset(args, project_path, std, config) -> int:
 def _convert_ws_to_ac(src_proj, dest_path, std, config):
     """Copy workset project metadata into account-centric layout."""
     phash = project_hash(str(dest_path))
-    projects_base = std.data_path / "settings"
+    projects_base = std.data_path / "boxes"
     dst_project = projects_base / phash
 
     # Copy metadata (excluding lock and home/).

@@ -89,7 +89,7 @@ class TestBoxMigrate:
 
         # New settings should exist with preserved data.
         new_hash = project_hash(str(new_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         new_project = projects_base / new_hash
         assert new_project.is_dir()
         assert (new_project / "marker.txt").read_text() == "hello"
@@ -193,7 +193,7 @@ class TestBoxMigrate:
 
         # Verify data landed under CWD's hash.
         new_hash = project_hash(str(cwd.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         new_project = projects_base / new_hash
         assert new_project.is_dir()
 
@@ -254,7 +254,7 @@ class TestBoxDuplicate:
 
         # Metadata copied with updated breadcrumb.
         new_hash = project_hash(str(dst_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         new_project = projects_base / new_hash
         assert (new_project / "marker.txt").read_text() == "session-data"
         assert (new_project / "project-path.txt").read_text().strip() == str(dst_dir.resolve())
@@ -283,7 +283,7 @@ class TestBoxDuplicate:
 
         # Metadata exists.
         new_hash = project_hash(str(dst_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         assert (projects_base / new_hash).is_dir()
 
     def test_duplicate_source_not_dir_error(self, config_file, tmp_home, credentials_dir):
@@ -387,7 +387,7 @@ class TestBoxDuplicate:
         assert rc == 0
 
         new_hash = project_hash(str(dst_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         new_project = projects_base / new_hash
         assert not (new_project / ".kanibako.lock").exists()
 
@@ -411,7 +411,7 @@ class TestBoxDuplicate:
         assert rc == 0
 
         new_hash = project_hash(str(dst_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         new_project = projects_base / new_hash
 
         # Fresh data present, stale data gone.
@@ -526,7 +526,7 @@ class TestBoxMigrateShell:
 
         # New home should exist with marker (inside projects/{hash}/home/).
         new_hash = project_hash(str(new_dir.resolve()))
-        new_home = std.data_path / "settings" / new_hash / "shell"
+        new_home = std.data_path / "boxes" / new_hash / "shell"
         assert new_home.is_dir()
         assert (new_home / "shell_marker.txt").read_text() == "shell-data"
 
@@ -591,7 +591,7 @@ class TestBoxConvert:
 
         # AC layout should exist.
         phash = project_hash(str(project_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         ac_project = projects_base / phash
         ac_home = ac_project / "shell"
 
@@ -704,7 +704,7 @@ class TestBoxConvert:
         assert rc == 0
 
         phash = project_hash(str(project_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         breadcrumb = projects_base / phash / "project-path.txt"
         assert breadcrumb.exists()
         assert breadcrumb.read_text().strip() == str(project_dir.resolve())
@@ -879,7 +879,7 @@ class TestBoxDuplicateCrossMode:
 
         # Destination should have AC layout.
         phash = project_hash(str(dst_dir.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         ac_project = projects_base / phash
         assert ac_project.is_dir()
         assert (ac_project / "marker.txt").read_text() == "dec-data"
@@ -1319,7 +1319,7 @@ class TestBoxConvertFromWorkset:
         dest_path = tmp_home / "ws-proj_src"
         # The source_path recorded in the workset project is used as dest
         phash = project_hash(str(dest_path))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         ac_project = projects_base / phash
         assert ac_project.is_dir()
         assert (ac_project / "marker.txt").read_text() == "ws-marker"
@@ -1508,7 +1508,7 @@ class TestBoxDuplicateFromWorkset:
 
         # AC layout at destination
         phash = project_hash(str(dest.resolve()))
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         ac_project = projects_base / phash
         assert ac_project.is_dir()
         assert (ac_project / "marker.txt").read_text() == "ws-dup-marker"

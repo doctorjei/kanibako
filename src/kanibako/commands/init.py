@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.paths import xdg, load_std_paths, resolve_decentralized_project
 
 
@@ -27,6 +27,10 @@ def add_init_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--no-vault", action="store_true",
         help="Disable vault directories (shared read-only and read-write mounts)",
+    )
+    p.add_argument(
+        "--distinct-auth", action="store_true",
+        help="Use distinct credentials (no sync from host)",
     )
     p.set_defaults(func=run_init)
 
@@ -49,6 +53,10 @@ def add_new_parser(subparsers: argparse._SubParsersAction) -> None:
         "--no-vault", action="store_true",
         help="Disable vault directories (shared read-only and read-write mounts)",
     )
+    p.add_argument(
+        "--distinct-auth", action="store_true",
+        help="Use distinct credentials (no sync from host)",
+    )
     p.set_defaults(func=run_new)
 
 
@@ -61,15 +69,16 @@ def run_init(args: argparse.Namespace) -> int:
         )
         return 1
 
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
     project_dir = args.project
     vault_enabled = not getattr(args, "no_vault", False)
+    auth = "distinct" if getattr(args, "distinct_auth", False) else None
     proj = resolve_decentralized_project(
         std, config, project_dir, initialize=True,
-        vault_enabled=vault_enabled,
+        vault_enabled=vault_enabled, auth=auth,
     )
 
     _write_project_gitignore(proj.project_path)
@@ -98,14 +107,15 @@ def run_new(args: argparse.Namespace) -> int:
 
     target.mkdir(parents=True)
 
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
     vault_enabled = not getattr(args, "no_vault", False)
+    auth = "distinct" if getattr(args, "distinct_auth", False) else None
     proj = resolve_decentralized_project(
         std, config, str(target), initialize=True,
-        vault_enabled=vault_enabled,
+        vault_enabled=vault_enabled, auth=auth,
     )
 
     _write_project_gitignore(proj.project_path)

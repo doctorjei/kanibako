@@ -7,8 +7,10 @@ from __future__ import annotations
 from kanibako.config import (
     KanibakoConfig,
     _flatten_toml,
+    config_file_path,
     load_config,
     load_merged_config,
+    migrate_config,
     read_project_meta,
     write_global_config,
     write_project_config,
@@ -20,7 +22,7 @@ class TestLoadConfig:
     def test_defaults(self, tmp_path):
         cfg = load_config(tmp_path / "nonexistent.toml")
         assert cfg.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
-        assert cfg.paths_dot_path == "dotclaude"
+        assert cfg.paths_boxes == "boxes"
 
     def test_round_trip(self, tmp_path):
         path = tmp_path / "test.toml"
@@ -28,7 +30,19 @@ class TestLoadConfig:
         write_global_config(path, cfg)
         loaded = load_config(path)
         assert loaded.container_image == "custom:latest"
-        assert loaded.paths_relative_std_path == "kanibako"
+        assert loaded.paths_data_path == ""
+
+    def test_loads_old_field_names_via_aliases(self, tmp_path):
+        """Old TOML files with paths_relative_std_path / paths_settings_path still load."""
+        path = tmp_path / "old.toml"
+        path.write_text(
+            '[paths]\nrelative_std_path = "kanibako"\nsettings_path = "settings"\n'
+            '[container]\nimage = "old:v1"\n'
+        )
+        cfg = load_config(path)
+        assert cfg.paths_data_path == "kanibako"
+        assert cfg.paths_boxes == "settings"
+        assert cfg.container_image == "old:v1"
 
 
 class TestMergedConfig:
@@ -59,9 +73,9 @@ class TestMergedConfig:
 
 class TestFlattenToml:
     def test_nested_dict(self):
-        data = {"paths": {"dot_path": "x", "cfg_file": "y"}}
+        data = {"paths": {"boxes": "x", "shell": "y"}}
         flat = _flatten_toml(data)
-        assert flat == {"paths_dot_path": "x", "paths_cfg_file": "y"}
+        assert flat == {"paths_boxes": "x", "paths_shell": "y"}
 
     def test_deeply_nested(self):
         data = {"a": {"b": {"c": "deep"}}}
@@ -192,3 +206,80 @@ class TestProjectMeta:
         meta = read_project_meta(toml_path)
         assert meta["mode"] == "workset"
         assert meta["workspace"] == "/new"
+
+
+class TestConfigFilePath:
+    def test_returns_new_path_when_neither_exists(self, tmp_path):
+        result = config_file_path(tmp_path)
+        assert result == tmp_path / "kanibako.toml"
+
+    def test_returns_new_path_when_new_exists(self, tmp_path):
+        new = tmp_path / "kanibako.toml"
+        new.write_text("[paths]\n")
+        result = config_file_path(tmp_path)
+        assert result == new
+
+    def test_returns_old_path_when_only_old_exists(self, tmp_path):
+        old = tmp_path / "kanibako" / "kanibako.toml"
+        old.parent.mkdir()
+        old.write_text("[paths]\n")
+        result = config_file_path(tmp_path)
+        assert result == old
+
+    def test_prefers_new_path_over_old(self, tmp_path):
+        new = tmp_path / "kanibako.toml"
+        new.write_text("[paths]\n")
+        old = tmp_path / "kanibako" / "kanibako.toml"
+        old.parent.mkdir()
+        old.write_text("[paths]\n")
+        result = config_file_path(tmp_path)
+        assert result == new
+
+
+class TestMigrateConfig:
+    def test_migrates_old_to_new(self, tmp_path):
+        old = tmp_path / "kanibako" / "kanibako.toml"
+        old.parent.mkdir()
+        old.write_text('[paths]\nboxes = "boxes"\n')
+
+        result = migrate_config(tmp_path)
+        new = tmp_path / "kanibako.toml"
+        assert result == new
+        assert new.exists()
+        assert not old.exists()
+        assert "boxes" in new.read_text()
+
+    def test_no_op_when_new_exists(self, tmp_path):
+        new = tmp_path / "kanibako.toml"
+        new.write_text('[paths]\nboxes = "new"\n')
+        old = tmp_path / "kanibako" / "kanibako.toml"
+        old.parent.mkdir()
+        old.write_text('[paths]\nboxes = "old"\n')
+
+        result = migrate_config(tmp_path)
+        assert result == new
+        assert "new" in new.read_text()
+        assert old.exists()  # old not removed
+
+    def test_no_op_when_neither_exists(self, tmp_path):
+        result = migrate_config(tmp_path)
+        assert result == tmp_path / "kanibako.toml"
+
+    def test_removes_empty_old_dir(self, tmp_path):
+        old = tmp_path / "kanibako" / "kanibako.toml"
+        old.parent.mkdir()
+        old.write_text("[paths]\n")
+
+        migrate_config(tmp_path)
+        assert not old.parent.exists()
+
+    def test_keeps_old_dir_if_not_empty(self, tmp_path):
+        old_dir = tmp_path / "kanibako"
+        old_dir.mkdir()
+        old = old_dir / "kanibako.toml"
+        old.write_text("[paths]\n")
+        (old_dir / "other.txt").write_text("keep me\n")
+
+        migrate_config(tmp_path)
+        assert old_dir.exists()
+        assert (old_dir / "other.txt").exists()

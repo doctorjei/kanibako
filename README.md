@@ -115,7 +115,7 @@ Centralized store keyed by the SHA-256 hash of the project path.  Just `cd`
 into any directory and run `kanibako`.
 
 ```
-$XDG_DATA_HOME/kanibako/settings/{hash}/       metadata + shell
+$XDG_DATA_HOME/kanibako/boxes/{hash}/          metadata + shell
 {project}/vault/share-ro/                       read-only vault
 {project}/vault/share-rw/                       read-write vault
 ```
@@ -132,7 +132,7 @@ kanibako
 ```
 
 ```
-{workset}/kanibako/{name}/          metadata + shell
+{workset}/boxes/{name}/             metadata + shell
 {workset}/workspaces/{name}/        workspace
 {workset}/vault/{name}/share-{ro,rw}/  vault
 ```
@@ -308,10 +308,10 @@ kanibako start
 Precedence: CLI flag > project.toml > kanibako.toml > hardcoded defaults
 ```
 
-- **Global**: `$XDG_CONFIG_HOME/kanibako/kanibako.toml`
-- **Project**: `settings/{hash}/project.toml`
-- **Environment**: `$XDG_CONFIG_HOME/kanibako/env` (global),
-  `settings/{hash}/env` (project)
+- **Global**: `$XDG_CONFIG_HOME/kanibako.toml`
+- **Project**: `boxes/{hash}/project.toml`
+- **Environment**: `$XDG_DATA_HOME/kanibako/env` (global),
+  `boxes/{hash}/env` (project)
 
 ```bash
 kanibako config --show              # show all resolved config

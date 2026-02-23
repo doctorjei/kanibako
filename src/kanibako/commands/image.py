@@ -9,7 +9,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-from kanibako.config import load_config, load_merged_config
+from kanibako.config import config_file_path, load_config, load_merged_config
 from kanibako.container import ContainerRuntime
 from kanibako.containerfiles import get_containerfile, list_containerfile_suffixes
 from kanibako.errors import ContainerError
@@ -75,7 +75,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_list(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
     proj = resolve_project(std, config, project_dir=args.project, initialize=False)
@@ -202,7 +202,7 @@ def resolve_image_name(name: str, configured_image: str) -> str:
 
 def run_rebuild(args: argparse.Namespace) -> int:
     """Update container image(s): pull from registry (default) or build locally."""
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
     containers_dir = std.data_path / "containers"

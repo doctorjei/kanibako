@@ -111,7 +111,8 @@ def main(argv: list[str] | None = None) -> None:
 
         if args.command != "setup":
             from kanibako.paths import xdg
-            _cf = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+            from kanibako.config import config_file_path
+            _cf = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
             if not _cf.exists():
                 print(
                     f"kanibako is not set up yet ({_cf} not found).\n"

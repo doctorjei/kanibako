@@ -120,7 +120,7 @@ def integration_home(tmp_path, monkeypatch):
 def integration_config(integration_home):
     """Write a default ``kanibako.toml`` and return its path."""
     config_home = integration_home / "int_config"
-    cf = config_home / "kanibako" / "kanibako.toml"
+    cf = config_home / "kanibako.toml"
     write_global_config(cf)
     return cf
 
@@ -132,7 +132,7 @@ def integration_credentials(integration_home, integration_config):
 
     config = load_config(integration_config)
     data_home = integration_home / "int_data"
-    data_path = data_home / config.paths_relative_std_path
+    data_path = data_home / (config.paths_data_path or "kanibako")
     data_path.mkdir(parents=True, exist_ok=True)
 
     # Write host credentials (used directly by init now)

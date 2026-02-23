@@ -166,6 +166,59 @@ class TestCheckAuth:
             m.target.check_auth.assert_not_called()
 
 
+class TestDistinctAuth:
+    """Verify distinct auth skips host credential sync."""
+
+    def test_distinct_auth_skips_refresh(self, start_mocks):
+        """When proj.auth == 'distinct', refresh_credentials is not called."""
+        with start_mocks() as m:
+            m.proj.auth = "distinct"
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.target.refresh_credentials.assert_not_called()
+            m.target.writeback_credentials.assert_not_called()
+
+    def test_distinct_auth_skips_check_auth(self, start_mocks):
+        """When proj.auth == 'distinct', check_auth is not called."""
+        with start_mocks() as m:
+            m.proj.auth = "distinct"
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.target.check_auth.assert_not_called()
+
+    def test_shared_auth_calls_refresh(self, start_mocks):
+        """When proj.auth == 'shared', refresh_credentials is called."""
+        with start_mocks() as m:
+            m.proj.auth = "shared"
+            rc = _run_container(
+                project_dir=None,
+                entrypoint=None,
+                image_override=None,
+                new_session=False,
+                safe_mode=False,
+                resume_mode=False,
+                extra_args=[],
+            )
+            assert rc == 0
+            m.target.refresh_credentials.assert_called_once()
+
+
 class TestStartArgs:
     """Verify CLI args are correctly passed through to container."""
 

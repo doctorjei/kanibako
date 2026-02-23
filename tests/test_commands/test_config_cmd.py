@@ -59,7 +59,7 @@ class TestConfigGet:
         captured = capsys.readouterr()
         assert "ghcr.io/doctorjei/kanibako-base:latest" in captured.out
 
-    def test_get_paths_dot_path(self, config_file, tmp_home, credentials_dir, capsys):
+    def test_get_paths_boxes(self, config_file, tmp_home, credentials_dir, capsys):
         from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
@@ -69,15 +69,15 @@ class TestConfigGet:
         resolve_project(std, config, project_dir=project_dir, initialize=True)
 
         args = argparse.Namespace(
-            key="paths_dot_path", value=None, show=False, clear=False, unset=None,
+            key="paths_boxes", value=None, show=False, clear=False, unset=None,
             project=project_dir,
         )
         rc = run(args)
         assert rc == 0
         captured = capsys.readouterr()
-        assert "dotclaude" in captured.out
+        assert "boxes" in captured.out
 
-    def test_get_paths_cfg_file(self, config_file, tmp_home, credentials_dir, capsys):
+    def test_get_paths_shell(self, config_file, tmp_home, credentials_dir, capsys):
         from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
@@ -87,13 +87,13 @@ class TestConfigGet:
         resolve_project(std, config, project_dir=project_dir, initialize=True)
 
         args = argparse.Namespace(
-            key="paths_cfg_file", value=None, show=False, clear=False, unset=None,
+            key="paths_shell", value=None, show=False, clear=False, unset=None,
             project=project_dir,
         )
         rc = run(args)
         assert rc == 0
         captured = capsys.readouterr()
-        assert "claude.json" in captured.out
+        assert "shell" in captured.out
 
     def test_get_target_name(self, config_file, tmp_home, credentials_dir, capsys):
         from kanibako.commands.config_cmd import run
@@ -160,7 +160,7 @@ class TestConfigSet:
         loaded = load_config(project_toml)
         assert loaded.container_image == "new-image:v1"
 
-    def test_set_paths_dot_path(self, config_file, tmp_home, credentials_dir, capsys):
+    def test_set_paths_boxes(self, config_file, tmp_home, credentials_dir, capsys):
         from kanibako.commands.config_cmd import run
 
         config = load_config(config_file)
@@ -170,7 +170,7 @@ class TestConfigSet:
         proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
 
         args = argparse.Namespace(
-            key="paths_dot_path", value="custom_dot", show=False, clear=False,
+            key="paths_boxes", value="custom_boxes", show=False, clear=False,
             unset=None, project=project_dir,
         )
         rc = run(args)
@@ -179,7 +179,7 @@ class TestConfigSet:
         project_toml = proj.metadata_path / "project.toml"
         assert project_toml.exists()
         loaded = load_config(project_toml)
-        assert loaded.paths_dot_path == "custom_dot"
+        assert loaded.paths_boxes == "custom_boxes"
 
     def test_set_via_full_key(self, config_file, tmp_home, credentials_dir, capsys):
         """``kanibako config container_image myimg`` should work."""
@@ -222,9 +222,9 @@ class TestConfigSet:
         )
         run(args)
 
-        # Set paths_dot_path
+        # Set paths_boxes
         args = argparse.Namespace(
-            key="paths_dot_path", value="multi_dot", show=False, clear=False,
+            key="paths_boxes", value="multi_boxes", show=False, clear=False,
             unset=None, project=project_dir,
         )
         run(args)
@@ -232,7 +232,7 @@ class TestConfigSet:
         project_toml = proj.metadata_path / "project.toml"
         loaded = load_config(project_toml)
         assert loaded.container_image == "multi:v1"
-        assert loaded.paths_dot_path == "multi_dot"
+        assert loaded.paths_boxes == "multi_boxes"
 
 
 class TestConfigUnknownKey:
@@ -290,7 +290,7 @@ class TestConfigShow:
         assert rc == 0
         captured = capsys.readouterr()
         assert "container_image" in captured.out
-        assert "paths_dot_path" in captured.out
+        assert "paths_boxes" in captured.out
         assert "target_name" in captured.out
 
     def test_show_marks_project_overrides(self, config_file, tmp_home, credentials_dir, capsys):
@@ -384,7 +384,7 @@ class TestConfigNoArgs:
         captured = capsys.readouterr()
         # Should show all config values (same as --show)
         assert "container_image" in captured.out
-        assert "paths_dot_path" in captured.out
+        assert "paths_boxes" in captured.out
         assert "target_name" in captured.out
 
 
@@ -514,12 +514,12 @@ class TestConfigUnset:
 class TestWriteProjectConfigKey:
     def test_write_paths_key(self, tmp_path):
         p = tmp_path / "project.toml"
-        write_project_config_key(p, "paths_dot_path", "custom_dot")
+        write_project_config_key(p, "paths_boxes", "custom_boxes")
         loaded = load_config(p)
-        assert loaded.paths_dot_path == "custom_dot"
+        assert loaded.paths_boxes == "custom_boxes"
         text = p.read_text()
         assert "[paths]" in text
-        assert 'dot_path = "custom_dot"' in text
+        assert 'boxes = "custom_boxes"' in text
 
     def test_write_container_key(self, tmp_path):
         p = tmp_path / "project.toml"
@@ -543,10 +543,10 @@ class TestWriteProjectConfigKey:
         """Writing keys from different sections should create both."""
         p = tmp_path / "project.toml"
         write_project_config_key(p, "container_image", "multi:v1")
-        write_project_config_key(p, "paths_dot_path", "multi_dot")
+        write_project_config_key(p, "paths_boxes", "multi_boxes")
         loaded = load_config(p)
         assert loaded.container_image == "multi:v1"
-        assert loaded.paths_dot_path == "multi_dot"
+        assert loaded.paths_boxes == "multi_boxes"
 
     def test_update_existing_key(self, tmp_path):
         p = tmp_path / "project.toml"
@@ -579,7 +579,7 @@ class TestUnsetProjectConfigKey:
         from kanibako.config import unset_project_config_key
         p = tmp_path / "project.toml"
         write_project_config_key(p, "container_image", "keep:v1")
-        assert unset_project_config_key(p, "paths_dot_path") is False
+        assert unset_project_config_key(p, "paths_boxes") is False
         # Original key should still be there
         loaded = load_config(p)
         assert loaded.container_image == "keep:v1"
@@ -593,10 +593,10 @@ class TestUnsetProjectConfigKey:
         from kanibako.config import unset_project_config_key
         p = tmp_path / "project.toml"
         write_project_config_key(p, "container_image", "img:v1")
-        write_project_config_key(p, "paths_dot_path", "my_dot")
+        write_project_config_key(p, "paths_boxes", "my_boxes")
         assert unset_project_config_key(p, "container_image") is True
         loaded = load_config(p)
-        assert loaded.paths_dot_path == "my_dot"
+        assert loaded.paths_boxes == "my_boxes"
         assert loaded.container_image == "ghcr.io/doctorjei/kanibako-base:latest"
 
 
@@ -612,7 +612,7 @@ class TestLoadProjectOverrides:
         assert "container_image" in overrides
         assert overrides["container_image"] == "override:v1"
         # Other keys should not appear (they are defaults)
-        assert "paths_dot_path" not in overrides
+        assert "paths_boxes" not in overrides
 
 
 class TestSplitConfigKey:
@@ -622,11 +622,11 @@ class TestSplitConfigKey:
 
     def test_paths_key(self):
         from kanibako.config import _split_config_key
-        assert _split_config_key("paths_dot_path") == ("paths", "dot_path")
+        assert _split_config_key("paths_boxes") == ("paths", "boxes")
 
     def test_paths_key_with_underscores(self):
         from kanibako.config import _split_config_key
-        assert _split_config_key("paths_relative_std_path") == ("paths", "relative_std_path")
+        assert _split_config_key("paths_data_path") == ("paths", "data_path")
 
     def test_target_key(self):
         from kanibako.config import _split_config_key
@@ -649,9 +649,9 @@ class TestConfigKeys:
         from kanibako.config import config_keys
         keys = config_keys()
         assert "container_image" in keys
-        assert "paths_dot_path" in keys
-        assert "paths_cfg_file" in keys
-        assert "paths_relative_std_path" in keys
+        assert "paths_boxes" in keys
+        assert "paths_shell" in keys
+        assert "paths_data_path" in keys
         assert "target_name" in keys
 
 
@@ -670,8 +670,8 @@ class TestConfigArgParsing:
     def test_parser_key_value(self):
         from kanibako.cli import build_parser
         parser = build_parser()
-        args = parser.parse_args(["config", "paths_dot_path", "new_value"])
-        assert args.key == "paths_dot_path"
+        args = parser.parse_args(["config", "paths_boxes", "new_value"])
+        assert args.key == "paths_boxes"
         assert args.value == "new_value"
 
     def test_parser_key_only(self):

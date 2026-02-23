@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.paths import xdg
 from kanibako.utils import confirm_prompt
 
@@ -21,7 +21,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def run(args: argparse.Namespace) -> int:
     config_home = xdg("XDG_CONFIG_HOME", ".config")
-    config_file = config_home / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(config_home)
     config_dir = config_file.parent
 
     # Load config to determine data path before deleting
@@ -29,7 +29,7 @@ def run(args: argparse.Namespace) -> int:
     if config_file.exists():
         try:
             config = load_config(config_file)
-            rel_std_path = config.paths_relative_std_path
+            rel_std_path = config.paths_data_path or "kanibako"
         except Exception:
             pass
 

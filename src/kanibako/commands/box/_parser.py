@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.errors import ProjectError
 from kanibako.paths import (
     xdg,
@@ -134,7 +134,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run_list(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -180,7 +180,7 @@ def run_list(args: argparse.Namespace) -> int:
 
 
 def run_info(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 

@@ -8,6 +8,7 @@ import sys
 
 from kanibako.config import (
     KanibakoConfig,
+    config_file_path,
     load_config,
     write_global_config,
 )
@@ -28,7 +29,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def run(args: argparse.Namespace) -> int:
     config_home = xdg("XDG_CONFIG_HOME", ".config")
-    config_file = config_home / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(config_home)
 
     # ------------------------------------------------------------------
     # 1. Write config
@@ -46,7 +47,7 @@ def run(args: argparse.Namespace) -> int:
     # 2. Create containers directory for user overrides
     # ------------------------------------------------------------------
     data_home = xdg("XDG_DATA_HOME", ".local/share")
-    data_path = data_home / config.paths_relative_std_path
+    data_path = data_home / (config.paths_data_path or "kanibako")
     containers_dest = data_path / "containers"
     containers_dest.mkdir(parents=True, exist_ok=True)
 

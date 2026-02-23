@@ -63,7 +63,7 @@ class TestEnvCommands:
     @pytest.fixture
     def env_paths(self, tmp_path):
         """Set up mock env paths and patch _resolve_env_paths."""
-        global_env = tmp_path / "config" / "kanibako" / "env"
+        global_env = tmp_path / "data" / "kanibako" / "env"
         project_env = tmp_path / "project" / ".kanibako" / "env"
         global_env.parent.mkdir(parents=True, exist_ok=True)
         project_env.parent.mkdir(parents=True, exist_ok=True)

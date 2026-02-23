@@ -308,3 +308,85 @@ class TestWorksetInfo:
         assert rc == 1
         err = capsys.readouterr().err
         assert "not registered" in err
+
+    def test_info_shows_auth(self, config_file, tmp_home, capsys):
+        from kanibako.commands.workset_cmd import run_create, run_info
+
+        ws_root = tmp_home / "authws"
+        run_create(argparse.Namespace(name="authws", path=str(ws_root)))
+        capsys.readouterr()
+
+        args = argparse.Namespace(name="authws")
+        rc = run_info(args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Auth:" in out
+        assert "shared" in out
+
+
+class TestWorksetAuth:
+    def test_show_auth_mode(self, config_file, tmp_home, capsys):
+        from kanibako.commands.workset_cmd import run_auth, run_create
+
+        ws_root = tmp_home / "authshowws"
+        run_create(argparse.Namespace(name="authshowws", path=str(ws_root)))
+        capsys.readouterr()
+
+        args = argparse.Namespace(name="authshowws", auth_mode=None)
+        rc = run_auth(args)
+        assert rc == 0
+        assert "shared" in capsys.readouterr().out
+
+    def test_switch_to_distinct(self, config_file, tmp_home, capsys):
+        from kanibako.commands.workset_cmd import run_auth, run_create
+        import json
+
+        ws_root = tmp_home / "distinctws"
+        run_create(argparse.Namespace(name="distinctws", path=str(ws_root)))
+        capsys.readouterr()
+
+        # Add a project and create credential files.
+        from kanibako.workset import load_workset, add_project
+        ws = load_workset(ws_root.resolve())
+        proj_src = tmp_home / "project"
+        add_project(ws, "proj1", proj_src)
+        shell = ws.projects_dir / "proj1" / "shell"
+        shell.mkdir(parents=True, exist_ok=True)
+        claude_dir = shell / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / ".credentials.json").write_text(json.dumps({"token": "t"}))
+        (shell / ".claude.json").write_text(json.dumps({"k": "v"}))
+
+        # Switch to distinct.
+        args = argparse.Namespace(name="distinctws", auth_mode="distinct")
+        rc = run_auth(args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "distinct" in out
+
+        # Credentials should be invalidated.
+        assert not (claude_dir / ".credentials.json").exists()
+        assert not (shell / ".claude.json").exists()
+
+    def test_switch_to_shared(self, config_file, tmp_home, capsys):
+        from kanibako.commands.workset_cmd import run_auth, run_create
+
+        ws_root = tmp_home / "sharedws"
+        run_create(argparse.Namespace(name="sharedws", path=str(ws_root)))
+        capsys.readouterr()
+
+        # First switch to distinct, then back to shared.
+        run_auth(argparse.Namespace(name="sharedws", auth_mode="distinct"))
+        capsys.readouterr()
+        args = argparse.Namespace(name="sharedws", auth_mode="shared")
+        rc = run_auth(args)
+        assert rc == 0
+        assert "shared" in capsys.readouterr().out
+
+    def test_auth_unknown_workset(self, config_file, tmp_home, capsys):
+        from kanibako.commands.workset_cmd import run_auth
+
+        args = argparse.Namespace(name="nosuchws", auth_mode=None)
+        rc = run_auth(args)
+        assert rc == 1
+        assert "not registered" in capsys.readouterr().err

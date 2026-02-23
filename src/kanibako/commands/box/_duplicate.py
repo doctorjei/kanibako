@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.paths import (
     ProjectMode,
     _find_workset_for_path,
@@ -139,7 +139,7 @@ def _duplicate_to_decentral(src_proj, new_path, force):
 def _duplicate_to_ac(src_proj, new_path, std, config, force):
     """Copy metadata into account-centric layout for new_path."""
     phash = project_hash(str(new_path))
-    projects_base = std.data_path / "settings"
+    projects_base = std.data_path / "boxes"
     dst_project = projects_base / phash
 
     if force and dst_project.is_dir():
@@ -309,7 +309,7 @@ def _duplicate_from_workset(args, source_path, new_path, std, config) -> int:
 
 
 def run_duplicate(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -332,7 +332,7 @@ def run_duplicate(args: argparse.Namespace) -> int:
 
     # 3. Source must have kanibako metadata.
     source_hash = project_hash(str(source_path))
-    projects_base = std.data_path / "settings"
+    projects_base = std.data_path / "boxes"
     source_project_dir = projects_base / source_hash
 
     if not source_project_dir.is_dir():

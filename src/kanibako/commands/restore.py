@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from kanibako.config import load_config
+from kanibako.config import config_file_path, load_config
 from kanibako.errors import UserCancelled
 from kanibako.git import is_git_repo
 from kanibako.paths import xdg, load_std_paths, resolve_any_project
@@ -34,7 +34,7 @@ def add_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
     std = load_std_paths(config)
 
@@ -115,7 +115,7 @@ def _restore_one(std, config, *, project_dir, archive_file, force) -> int:
 
         # Restore session data
         print("Restoring session data... ", end="", flush=True)
-        projects_base = std.data_path / "settings"
+        projects_base = std.data_path / "boxes"
         projects_base.mkdir(parents=True, exist_ok=True)
 
         if proj.metadata_path.exists():

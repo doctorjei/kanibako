@@ -48,12 +48,13 @@ class Workset:
     root: Path
     created: str                            # ISO 8601, UTC
     projects: list[WorksetProject] = field(default_factory=list)
+    auth: str = field(default="shared")     # "shared" or "distinct"
 
     # Convenience paths -------------------------------------------------------
 
     @property
     def projects_dir(self) -> Path:
-        return self.root / "kanibako"
+        return self.root / "boxes"
 
     @property
     def workspaces_dir(self) -> Path:
@@ -77,6 +78,7 @@ def _write_workset_toml(ws: Workset) -> None:
     lines = [
         f'name = "{ws.name}"',
         f'created = "{ws.created}"',
+        f'auth = "{ws.auth}"',
         "",
     ]
     for proj in ws.projects:
@@ -98,6 +100,7 @@ def _load_workset_toml(root: Path) -> Workset:
     if not name:
         raise WorksetError(f"workset.toml in {root} has no 'name' key")
     created = data.get("created", "")
+    auth = data.get("auth", "shared")
     projects = []
     for entry in data.get("projects", []):
         projects.append(
@@ -106,7 +109,7 @@ def _load_workset_toml(root: Path) -> Workset:
                 source_path=Path(entry["source_path"]),
             )
         )
-    return Workset(name=name, root=root, created=created, projects=projects)
+    return Workset(name=name, root=root, created=created, projects=projects, auth=auth)
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +169,7 @@ def create_workset(name: str, root: Path, std: StandardPaths) -> Workset:
 
     # Create directory skeleton.
     root.mkdir(parents=True)
-    for subdir in ("kanibako", "workspaces", "vault"):
+    for subdir in ("boxes", "workspaces", "vault"):
         (root / subdir).mkdir()
 
     ws = Workset(
@@ -190,6 +193,13 @@ def load_workset(root: Path) -> Workset:
     root = root.resolve()
     if not root.is_dir():
         raise WorksetError(f"Workset root does not exist: {root}")
+    # Migrate old kanibako/ subdir to boxes/ if needed.
+    old_subdir = root / "kanibako"
+    new_subdir = root / "boxes"
+    if old_subdir.is_dir() and not new_subdir.exists():
+        old_subdir.rename(new_subdir)
+        import sys
+        print(f"Migrated workset: {old_subdir} → {new_subdir}", file=sys.stderr)
     return _load_workset_toml(root)
 
 

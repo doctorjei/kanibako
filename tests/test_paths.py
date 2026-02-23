@@ -504,11 +504,11 @@ class TestEnsureVaultSymlink:
 
         proj = resolve_project(
             std, config, project_dir=project_dir,
-            initialize=True, layout=ProjectLayout.tree,
+            initialize=True, layout=ProjectLayout.robust,
         )
 
         # Vault dirs should be under metadata_path, not project_path.
-        assert "settings" in str(proj.vault_ro_path)
+        assert "boxes" in str(proj.vault_ro_path)
 
         # Symlink should exist at project_path/vault.
         link = proj.project_path / "vault"

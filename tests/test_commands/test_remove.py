@@ -13,7 +13,7 @@ class TestRemove:
     def test_removes_config(self, tmp_home):
         from kanibako.commands.remove import run
 
-        config_file = tmp_home / "config" / "kanibako" / "kanibako.toml"
+        config_file = tmp_home / "config" / "kanibako.toml"
         write_global_config(config_file)
         assert config_file.exists()
 

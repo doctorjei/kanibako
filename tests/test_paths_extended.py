@@ -77,12 +77,9 @@ class TestPathEdgeCases:
         proj = resolve_project(std, config, project_dir=str(link), initialize=True)
         assert proj.project_path == real.resolve()
 
-    def test_legacy_rc_detection(self, tmp_home):
-        """load_std_paths raises ConfigError mentioning legacy .rc if present."""
-        config_dir = tmp_home / "config" / "kanibako"
-        config_dir.mkdir(parents=True)
-        (config_dir / "kanibako.rc").write_text("KANIBAKO_DOT_PATH=x\n")
-        with pytest.raises(ConfigError, match="Legacy config"):
+    def test_missing_config_detection(self, tmp_home):
+        """load_std_paths raises ConfigError when no config file exists."""
+        with pytest.raises(ConfigError, match="is missing"):
             load_std_paths()
 
 

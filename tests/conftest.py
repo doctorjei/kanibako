@@ -44,7 +44,7 @@ def tmp_home(tmp_path, monkeypatch):
 def config_file(tmp_home):
     """Write a default kanibako.toml and return its path."""
     config_home = tmp_home / "config"
-    cf = config_home / "kanibako" / "kanibako.toml"
+    cf = config_home / "kanibako.toml"
     write_global_config(cf)
     return cf
 
@@ -81,7 +81,7 @@ def credentials_dir(tmp_home, config_file):
     from kanibako.config import load_config
     config = load_config(config_file)
     data_home = tmp_home / "data"
-    data_path = data_home / config.paths_relative_std_path
+    data_path = data_home / (config.paths_data_path or "kanibako")
     data_path.mkdir(parents=True, exist_ok=True)
 
     # Write host credentials (used directly by init now)

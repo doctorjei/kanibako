@@ -6,7 +6,7 @@ import argparse
 import fcntl
 import sys
 
-from kanibako.config import load_config, load_merged_config
+from kanibako.config import config_file_path, load_config, load_merged_config
 from kanibako.container import ContainerRuntime
 from kanibako.errors import ConfigError, ContainerError
 from kanibako.log import get_logger
@@ -146,7 +146,7 @@ def _run_container(
     resume_mode: bool,
     extra_args: list[str],
 ) -> int:
-    config_file = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "kanibako.toml"
+    config_file = config_file_path(xdg("XDG_CONFIG_HOME", ".config"))
     config = load_config(config_file)
 
     try:
@@ -279,14 +279,14 @@ def _run_container(
         # Upgrade shell (add shell.d support to existing shells).
         _upgrade_shell(proj.shell_path)
 
-        # Pre-launch auth check
-        if target and install:
+        # Pre-launch auth check (skip for distinct auth — creds live in project)
+        if target and install and proj.auth != "distinct":
             if not target.check_auth():
                 print("Error: Authentication failed.", file=sys.stderr)
                 return 1
 
-        # Credential refresh via target
-        if target:
+        # Credential refresh via target (skip for distinct auth)
+        if target and proj.auth != "distinct":
             target.refresh_credentials(proj.shell_path)
 
         # Build CLI args via target
@@ -308,7 +308,7 @@ def _run_container(
 
         # Read per-project and global environment variables.
         from kanibako.shellenv import merge_env
-        global_env_path = xdg("XDG_CONFIG_HOME", ".config") / "kanibako" / "env"
+        global_env_path = std.data_path / "env"
         project_env_path = proj.metadata_path / "env"
         container_env = merge_env(global_env_path, project_env_path) or None
 
@@ -328,8 +328,8 @@ def _run_container(
             cli_args=cli_args or None,
         )
 
-        # Write back refreshed credentials via target
-        if target:
+        # Write back refreshed credentials via target (skip for distinct auth)
+        if target and proj.auth != "distinct":
             target.writeback_credentials(proj.shell_path)
 
         return rc
