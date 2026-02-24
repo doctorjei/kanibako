@@ -6,6 +6,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from kanibako.agents import AgentConfig
 
 
 class ResourceScope(Enum):
@@ -112,6 +116,24 @@ class Target(ABC):
         project shell (e.g. ".claude/" for ClaudeTarget).
         """
         return []
+
+    def generate_agent_config(self) -> AgentConfig:
+        """Return a default AgentConfig for this target.
+
+        Subclasses should override to provide agent-specific defaults
+        (template variant, state knobs, shared caches, etc.).
+        """
+        from kanibako.agents import AgentConfig as _AgentConfig
+
+        return _AgentConfig(name=self.display_name)
+
+    def apply_state(self, state: dict[str, str]) -> tuple[list[str], dict[str, str]]:
+        """Translate ``[state]`` values into CLI args and env vars.
+
+        Returns ``(cli_args, env_vars)``.  Base implementation ignores all
+        state keys.  Subclasses override to handle known keys.
+        """
+        return [], {}
 
     @abstractmethod
     def refresh_credentials(self, home: Path) -> None:

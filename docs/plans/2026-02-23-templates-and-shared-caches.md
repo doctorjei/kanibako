@@ -1,7 +1,7 @@
 # Design: Agent System (7a), Shell Templates (7b), and Global Shared Caches (7c)
 
 **Date:** 2026-02-23
-**Status:** 7b and 7c implemented (2026-02-24); 7a deferred
+**Status:** All implemented (7a, 7b, 7c — 2026-02-24)
 
 ---
 
@@ -344,14 +344,15 @@ Users opt in by creating the directory. For convenience, we could:
 
 ## Implementation Scope
 
-### 7a (agent plugin system) — deferred, design complete:
-- New `src/kanibako/agents.py`: load/generate/write agent TOML
-- Modify `targets/base.py`: add `generate_agent_config()`, `apply_state()` methods
-- Modify `targets/claude.py`: implement agent config generation and state translation
-- Modify `start.py`: load agent TOML, merge `[env]`, apply `[state]`, mount agent `[shared]`
-- Modify `install.py` (setup): generate agent TOMLs for installed plugins
-- Create `agents/general.toml` (empty default)
-- Tests for TOML generation, state translation, agent shared cache mounting
+### 7a (agent plugin system) — DONE (2026-02-24):
+- New `src/kanibako/agents.py`: `AgentConfig` dataclass, `load_agent_config()`, `write_agent_config()`, path helpers
+- Modified `targets/base.py`: added `generate_agent_config()`, `apply_state()` concrete methods
+- Modified `targets/claude.py`: overrides for agent config generation and state translation (`model` → `--model`)
+- Modified `paths.py`: `local_shared_path: Path | None` on ProjectPaths, set in AC/WS resolvers
+- Modified `start.py`: loads agent TOML, merges `default_args` + `apply_state()` into CLI, mounts agent `[shared]`, layers `[env]` + state env
+- Modified `install.py` (setup): creates `agents/` dir, generates `general.toml` and per-target TOMLs
+- Modified `conftest.py`: `start_mocks` patches agent config functions with empty defaults
+- 48 new tests (22 agents, 9 targets, 3 paths, 4 install, 10 start) — 845 total, lint clean
 
 ### 7b (templates) — DONE (2026-02-24):
 - New `src/kanibako/templates.py` (resolve + apply, ~55 lines)

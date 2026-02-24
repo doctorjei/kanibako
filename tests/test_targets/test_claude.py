@@ -387,6 +387,55 @@ class TestResourceMappings:
             assert mappings[path] == ResourceScope.PROJECT, f"{path} should be PROJECT"
 
 
+class TestGenerateAgentConfig:
+    def test_returns_claude_defaults(self):
+        t = ClaudeTarget()
+        cfg = t.generate_agent_config()
+        assert cfg.name == "Claude Code"
+        assert cfg.shell == "standard"
+        assert cfg.state == {"access": "permissive"}
+        assert cfg.shared_caches == {"plugins": ".claude/plugins"}
+        assert cfg.default_args == []
+        assert cfg.env == {}
+
+    def test_is_agent_config_instance(self):
+        from kanibako.agents import AgentConfig
+        t = ClaudeTarget()
+        cfg = t.generate_agent_config()
+        assert isinstance(cfg, AgentConfig)
+
+
+class TestApplyState:
+    def test_model_translated_to_cli_arg(self):
+        t = ClaudeTarget()
+        cli_args, env_vars = t.apply_state({"model": "opus"})
+        assert cli_args == ["--model", "opus"]
+        assert env_vars == {}
+
+    def test_unknown_keys_ignored(self):
+        t = ClaudeTarget()
+        cli_args, env_vars = t.apply_state({"unknown_key": "value"})
+        assert cli_args == []
+        assert env_vars == {}
+
+    def test_empty_state(self):
+        t = ClaudeTarget()
+        cli_args, env_vars = t.apply_state({})
+        assert cli_args == []
+        assert env_vars == {}
+
+    def test_model_with_other_keys(self):
+        t = ClaudeTarget()
+        cli_args, env_vars = t.apply_state({"model": "sonnet", "access": "permissive"})
+        assert cli_args == ["--model", "sonnet"]
+        assert env_vars == {}
+
+    def test_empty_model_not_added(self):
+        t = ClaudeTarget()
+        cli_args, env_vars = t.apply_state({"model": ""})
+        assert cli_args == []
+
+
 class TestWritebackCredentials:
     def test_calls_writeback(self, tmp_path):
         """writeback_credentials delegates to writeback_project_to_host."""

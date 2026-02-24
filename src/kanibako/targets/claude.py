@@ -7,9 +7,13 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from kanibako.log import get_logger
 from kanibako.targets.base import AgentInstall, Mount, ResourceMapping, ResourceScope, Target
+
+if TYPE_CHECKING:
+    from kanibako.agents import AgentConfig
 
 logger = get_logger("targets.claude")
 
@@ -100,6 +104,34 @@ class ClaudeTarget(Target):
         else:
             # Distinct auth: create empty .claude.json
             (home / ".claude.json").touch()
+
+    def generate_agent_config(self) -> AgentConfig:
+        """Return default Claude Code agent configuration."""
+        from kanibako.agents import AgentConfig as _AgentConfig
+
+        return _AgentConfig(
+            name="Claude Code",
+            shell="standard",
+            state={"access": "permissive"},
+            shared_caches={"plugins": ".claude/plugins"},
+        )
+
+    def apply_state(self, state: dict[str, str]) -> tuple[list[str], dict[str, str]]:
+        """Translate Claude Code state values into CLI args and env vars.
+
+        Recognized keys:
+          - ``model``: passed as ``--model <value>``
+
+        Unknown keys are silently ignored.
+        """
+        cli_args: list[str] = []
+        env_vars: dict[str, str] = {}
+
+        model = state.get("model")
+        if model:
+            cli_args.extend(["--model", model])
+
+        return cli_args, env_vars
 
     def check_auth(self) -> bool:
         """Check if the user is authenticated with Claude.

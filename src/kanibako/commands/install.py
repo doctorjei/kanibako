@@ -56,6 +56,24 @@ def run(args: argparse.Namespace) -> int:
     (templates_dir / "general" / "base").mkdir(parents=True, exist_ok=True)
     (templates_dir / "general" / "standard").mkdir(parents=True, exist_ok=True)
 
+    # Create agents directory and generate default agent TOMLs.
+    from kanibako.agents import AgentConfig, write_agent_config
+    from kanibako.targets import discover_targets
+
+    agents_path = data_path / (config.paths_agents or "agents")
+    agents_path.mkdir(parents=True, exist_ok=True)
+
+    # general.toml (no-agent default)
+    general_toml = agents_path / "general.toml"
+    if not general_toml.exists():
+        write_agent_config(general_toml, AgentConfig(name="Shell"))
+
+    # Each discovered target plugin
+    for target_name, cls in discover_targets().items():
+        target_toml = agents_path / f"{target_name}.toml"
+        if not target_toml.exists():
+            write_agent_config(target_toml, cls().generate_agent_config())
+
     # ------------------------------------------------------------------
     # 3. Pull or build base container image
     # ------------------------------------------------------------------

@@ -6,6 +6,7 @@ import argparse
 import fcntl
 import sys
 
+from kanibako.agents import agent_toml_path, load_agent_config, write_agent_config
 from kanibako.config import config_file_path, load_config, load_merged_config
 from kanibako.container import ContainerRuntime
 from kanibako.errors import ConfigError, ContainerError
@@ -243,6 +244,16 @@ def _run_container(
             )
             logger.debug("resolve_target() raised KeyError", exc_info=True)
 
+    # Load agent config
+    agent_id = target.name if target else "general"
+    agent_cfg_path = agent_toml_path(std.data_path, agent_id, merged.paths_agents)
+    if target and not agent_cfg_path.exists():
+        # First-use: generate default agent config from target plugin
+        agent_cfg = target.generate_agent_config()
+        write_agent_config(agent_cfg_path, agent_cfg)
+    else:
+        agent_cfg = load_agent_config(agent_cfg_path)
+
     # Deterministic container name for stop/cleanup
     container_name = f"kanibako-{short_hash(proj.project_hash)}"
 
@@ -283,7 +294,7 @@ def _run_container(
         if proj.is_new and target:
             from kanibako.templates import apply_shell_template
             templates_base = std.data_path / merged.paths_templates
-            apply_shell_template(proj.shell_path, templates_base, target.name)
+            apply_shell_template(proj.shell_path, templates_base, target.name, agent_cfg.shell)
             target.init_home(proj.shell_path, auth=proj.auth)
 
         # Pre-launch auth check (skip for distinct auth — creds live in project)
@@ -296,16 +307,20 @@ def _run_container(
         if target and proj.auth != "distinct":
             target.refresh_credentials(proj.shell_path)
 
-        # Build CLI args via target
+        # Build CLI args via target, merging agent default_args and state
         if target:
+            state_args, state_env = target.apply_state(agent_cfg.state)
+            all_extra = list(agent_cfg.default_args) + list(extra_args)
             cli_args = target.build_cli_args(
                 safe_mode=safe_mode,
                 resume_mode=resume_mode,
                 new_session=new_session,
                 is_new_project=proj.is_new,
-                extra_args=extra_args,
+                extra_args=all_extra,
             )
+            cli_args.extend(state_args)
         else:
+            state_env = {}
             cli_args = list(extra_args)
 
         # Build extra mounts from target binary detection
@@ -325,11 +340,26 @@ def _run_container(
                         options="Z,U",
                     ))
 
+        # Agent-level shared cache mounts (lazy — only mount if dir exists)
+        if proj.local_shared_path and agent_cfg.shared_caches:
+            from kanibako.targets.base import Mount as _Mount
+            for cache_name, container_rel in agent_cfg.shared_caches.items():
+                host_dir = proj.local_shared_path / agent_id / cache_name
+                if host_dir.is_dir():
+                    extra_mounts.append(_Mount(
+                        source=host_dir,
+                        destination=f"/home/agent/{container_rel}",
+                        options="Z,U",
+                    ))
+
         # Read per-project and global environment variables.
         from kanibako.shellenv import merge_env
         global_env_path = std.data_path / "env"
         project_env_path = proj.metadata_path / "env"
-        container_env = merge_env(global_env_path, project_env_path) or None
+        container_env = merge_env(global_env_path, project_env_path) or {}
+        container_env.update(agent_cfg.env)
+        container_env.update(state_env)
+        container_env = container_env or None
 
         # Run the container
         rc = runtime.run(

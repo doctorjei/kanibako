@@ -83,6 +83,7 @@ class ProjectPaths:
     vault_enabled: bool = field(default=True)
     auth: str = field(default="shared")
     global_shared_path: Path | None = field(default=None)
+    local_shared_path: Path | None = field(default=None)
 
 
 def xdg(env_var: str, default_suffix: str) -> Path:
@@ -257,6 +258,7 @@ def resolve_project(
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
         global_shared_path=std.data_path / config.paths_shared / "global",
+        local_shared_path=std.data_path / config.paths_shared,
     )
 
 
@@ -620,6 +622,7 @@ def resolve_workset_project(
         vault_enabled=actual_vault_enabled,
         auth=actual_auth,
         global_shared_path=std.data_path / config.paths_shared / "global",
+        local_shared_path=Path(ws.root) / config.paths_shared,
     )
 
 

@@ -183,6 +183,7 @@ def start_mocks():
     """
     @contextmanager
     def _make():
+        from kanibako.agents import AgentConfig
         from kanibako.paths import ProjectMode
 
         with (
@@ -194,6 +195,8 @@ def start_mocks():
             patch("kanibako.commands.start.resolve_target") as m_resolve_target,
             patch("kanibako.commands.start._upgrade_shell"),
             patch("kanibako.templates.apply_shell_template"),
+            patch("kanibako.commands.start.load_agent_config") as m_load_agent_cfg,
+            patch("kanibako.commands.start.agent_toml_path") as m_agent_toml_path,
             patch("kanibako.commands.start.fcntl") as m_fcntl,
             patch("builtins.open", MagicMock()) as m_open,
         ):
@@ -204,25 +207,37 @@ def start_mocks():
             proj.metadata_path.__truediv__ = MagicMock(return_value=MagicMock())
             proj.shell_path = MagicMock()
             proj.shell_path.__truediv__ = MagicMock(return_value=MagicMock())
+            proj.local_shared_path = None
             m_resolve_any.return_value = proj
 
             merged = MagicMock()
             merged.container_image = "test:latest"
             merged.target_name = ""
+            merged.paths_agents = "agents"
             m_merged.return_value = merged
 
             runtime = MagicMock()
             runtime.run.return_value = 0
             m_rt_cls.return_value = runtime
 
+            # Agent config mock: empty defaults (no default_args, no state, no env)
+            agent_cfg = AgentConfig()
+            m_load_agent_cfg.return_value = agent_cfg
+            # agent_toml_path returns a mock Path that reports exists()=True
+            mock_agent_path = MagicMock()
+            mock_agent_path.exists.return_value = True
+            m_agent_toml_path.return_value = mock_agent_path
+
             # Target mock: resolve_target returns a mock target with detect/build_cli_args/etc.
             target = MagicMock()
             target.display_name = "Claude Code"
+            target.name = "claude"
             target.detect.return_value = MagicMock()  # install object
             target.binary_mounts.return_value = []
             target.build_cli_args.side_effect = lambda *, safe_mode, resume_mode, new_session, is_new_project, extra_args: (
                 _build_default_cli_args(safe_mode, resume_mode, new_session, is_new_project, extra_args)
             )
+            target.apply_state.return_value = ([], {})
             m_resolve_target.return_value = target
 
             yield SimpleNamespace(
@@ -236,6 +251,9 @@ def start_mocks():
                 merged=merged,
                 resolve_target=m_resolve_target,
                 target=target,
+                agent_cfg=agent_cfg,
+                load_agent_config=m_load_agent_cfg,
+                agent_toml_path=m_agent_toml_path,
                 fcntl=m_fcntl,
                 open=m_open,
             )

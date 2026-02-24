@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-
-
 from kanibako.commands.start import _run_container
 
 
@@ -256,3 +254,84 @@ class TestStartArgs:
             call_kwargs = m.runtime.run.call_args
             cli_args = call_kwargs.kwargs.get("cli_args") or []
             assert "--dangerously-skip-permissions" not in cli_args
+
+
+class TestAgentConfigIntegration:
+    """Verify agent config integration in _run_container."""
+
+    def test_default_args_merged_into_cli(self, start_mocks):
+        """Agent default_args are prepended to extra_args."""
+        with start_mocks() as m:
+            m.agent_cfg.default_args = ["--verbose"]
+            m.load_agent_config.return_value = m.agent_cfg
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=["--foo"],
+            )
+            m.target.build_cli_args.assert_called_once()
+            call_kwargs = m.target.build_cli_args.call_args.kwargs
+            assert call_kwargs["extra_args"] == ["--verbose", "--foo"]
+
+    def test_apply_state_called(self, start_mocks):
+        """target.apply_state() is called with agent_cfg.state."""
+        with start_mocks() as m:
+            m.agent_cfg.state = {"model": "opus"}
+            m.load_agent_config.return_value = m.agent_cfg
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=[],
+            )
+            m.target.apply_state.assert_called_once_with({"model": "opus"})
+
+    def test_state_args_appended_to_cli(self, start_mocks):
+        """CLI args from apply_state() are appended to the final cli_args."""
+        with start_mocks() as m:
+            m.target.apply_state.return_value = (["--model", "opus"], {})
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=[],
+            )
+            cli_args = m.runtime.run.call_args.kwargs.get("cli_args") or []
+            assert "--model" in cli_args
+            assert "opus" in cli_args
+
+    def test_agent_env_merged_into_container_env(self, start_mocks):
+        """Agent [env] section values are included in container env."""
+        with start_mocks() as m:
+            m.agent_cfg.env = {"MY_VAR": "hello"}
+            m.load_agent_config.return_value = m.agent_cfg
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=[],
+            )
+            env = m.runtime.run.call_args.kwargs.get("env") or {}
+            assert env.get("MY_VAR") == "hello"
+
+    def test_state_env_merged_into_container_env(self, start_mocks):
+        """Env vars from apply_state() are included in container env."""
+        with start_mocks() as m:
+            m.target.apply_state.return_value = ([], {"STATE_VAR": "value"})
+            _run_container(
+                project_dir=None, entrypoint=None, image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=[],
+            )
+            env = m.runtime.run.call_args.kwargs.get("env") or {}
+            assert env.get("STATE_VAR") == "value"
+
+    def test_shell_mode_uses_general_agent(self, start_mocks):
+        """Shell mode (entrypoint set) loads 'general' agent config."""
+        with start_mocks() as m:
+            m.resolve_target.side_effect = KeyError("skip")
+            _run_container(
+                project_dir=None, entrypoint="/bin/bash", image_override=None,
+                new_session=False, safe_mode=False, resume_mode=False,
+                extra_args=[],
+            )
+            # agent_toml_path should have been called with agent_id="general"
+            call_args = m.agent_toml_path.call_args
+            assert call_args[0][1] == "general"

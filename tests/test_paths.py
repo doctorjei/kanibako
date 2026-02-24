@@ -643,3 +643,16 @@ class TestGlobalSharedPath:
         assert proj.global_shared_path is not None
         assert "shared" in str(proj.global_shared_path)
         assert str(proj.global_shared_path).endswith("/global")
+
+
+class TestLocalSharedPath:
+    """Tests for local_shared_path on ProjectPaths."""
+
+    def test_ac_has_local_shared_path(self, config_file, tmp_home, credentials_dir):
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
+
+        expected = std.data_path / config.paths_shared
+        assert proj.local_shared_path == expected

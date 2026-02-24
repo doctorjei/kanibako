@@ -168,6 +168,17 @@ class TestDecentralizedGlobalSharedPath:
         assert proj.global_shared_path is None
 
 
+class TestDecentralizedLocalSharedPath:
+    def test_decentralized_has_no_local_shared_path(
+        self, std, config, project_dir, credentials_dir,
+    ):
+        """Decentralized projects don't get agent-level shared caches."""
+        proj = resolve_decentralized_project(
+            std, config, str(project_dir), initialize=True,
+        )
+        assert proj.local_shared_path is None
+
+
 class TestDecentralizedCredentialFlow:
     def test_no_credentials_during_init(
         self, std, config, project_dir, credentials_dir,

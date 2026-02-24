@@ -160,6 +160,19 @@ class TestWorksetGlobalSharedPath:
         assert proj.global_shared_path == expected
 
 
+class TestWorksetLocalSharedPath:
+    def test_workset_has_local_shared_path(
+        self, workset_env, std, config, credentials_dir
+    ):
+        """Workset projects get a local shared path under the workset root."""
+        ws, name = workset_env
+        proj = resolve_workset_project(ws, name, std, config, initialize=True)
+
+        from pathlib import Path
+        expected = Path(ws.root) / config.paths_shared
+        assert proj.local_shared_path == expected
+
+
 class TestWorksetProjectCredentialFlow:
     def test_no_credentials_during_init(
         self, workset_env, std, config, credentials_dir
