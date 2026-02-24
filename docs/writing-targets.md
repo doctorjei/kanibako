@@ -39,6 +39,8 @@ class MyTarget(Target):
     def writeback_credentials(self, home: Path) -> None: ...
     def build_cli_args(self, *, safe_mode, resume_mode, new_session,
                        is_new_project, extra_args) -> list[str]: ...
+    def generate_agent_config(self) -> AgentConfig: ...
+    def apply_state(self, state: dict[str, str]) -> tuple[list[str], dict[str, str]]: ...
 ```
 
 ### Supporting dataclasses
@@ -253,6 +255,48 @@ def build_cli_args(self, *, safe_mode, resume_mode, new_session,
         args.append("--resume")
     args.extend(extra_args)
     return args
+```
+
+### `generate_agent_config() -> AgentConfig`
+
+Return a default `AgentConfig` for this target.  Called on first use or during
+`kanibako setup` to generate the agent TOML file.  The base implementation
+returns an `AgentConfig` with `name` set to `self.display_name` and all other
+fields at their defaults.
+
+Subclasses should override to provide agent-specific defaults — template
+variant, state knobs, shared cache paths, etc.
+
+```python
+from kanibako.agents import AgentConfig
+
+def generate_agent_config(self) -> AgentConfig:
+    return AgentConfig(
+        name="MyAgent",
+        shell="standard",
+        state={"access": "permissive"},
+        shared_caches={"plugins": ".config/myagent/plugins"},
+    )
+```
+
+### `apply_state(state: dict[str, str]) -> tuple[list[str], dict[str, str]]`
+
+Translate `[state]` section values from the agent TOML into CLI arguments and
+environment variables.  Returns a tuple of `(cli_args, env_vars)`.
+
+The base implementation returns `([], {})` — all state keys are silently
+ignored.  Subclasses override to handle known keys.
+
+For example, the built-in Claude target maps the `model` key to the
+`--model` CLI flag:
+
+```python
+def apply_state(self, state: dict[str, str]) -> tuple[list[str], dict[str, str]]:
+    cli_args: list[str] = []
+    env_vars: dict[str, str] = {}
+    if "model" in state:
+        cli_args.extend(["--model", state["model"]])
+    return cli_args, env_vars
 ```
 
 ### `resource_mappings() -> list[ResourceMapping]`

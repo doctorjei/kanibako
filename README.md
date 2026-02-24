@@ -25,6 +25,12 @@ small and toolchain-focused.
   automatic tar.xz snapshots before each launch
 - **Shell customization** — per-project environment variables (`kanibako env`)
   and drop-in init scripts (`shell.d/`)
+- **Agent configuration** — per-agent TOML config with template variant,
+  default args, state knobs, env vars, and shared caches
+- **Shell templates** — layered home directory templates applied on first
+  project init, with agent-specific and general variants
+- **Shared caches** — global download caches (pip, cargo, npm, etc.) shared
+  across projects; agent-level caches via agent TOML
 - **Target plugin system** — agent-agnostic; Claude Code is a built-in target,
   other agents can be added via `pip install`
 - **Image freshness checks** — non-blocking digest comparison against GHCR on
@@ -84,7 +90,7 @@ Subsequent runs reuse the existing state.
 | `kanibako config [key [value]]` | Get/set per-project configuration |
 | `kanibako image [list\|rebuild]` | Manage container images |
 | `kanibako box [list\|info\|archive\|restore\|purge\|migrate\|duplicate]` | Project management |
-| `kanibako workset [create\|list\|delete\|add\|remove\|info]` | Working set management |
+| `kanibako workset [create\|list\|delete\|add\|remove\|info\|auth]` | Working set management |
 | `kanibako init --local [-p DIR]` | Initialize decentralized project |
 | `kanibako new --local <path>` | Create new decentralized project |
 | `kanibako vault [snapshot\|list\|restore\|prune]` | Vault snapshot management |
@@ -102,6 +108,7 @@ Subsequent runs reuse the existing state.
 | `-N, --new` | Start a new conversation (skip `--continue`) |
 | `-S, --safe` | Run without `--dangerously-skip-permissions` |
 | `-c, --command CMD` | Use CMD as the container entrypoint |
+| `--distinct-auth` | Use distinct credentials (no sync from host) |
 | `-v, --verbose` | Show debug output (target detection, container command) |
 
 ## Project Modes
@@ -245,6 +252,56 @@ echo 'alias ll="ls -la"' > /path/to/shell/.shell.d/aliases.sh
 Existing shells from older kanibako versions are automatically upgraded to
 support `shell.d/` on the next launch.
 
+## Agent Configuration
+
+Each agent instance gets a TOML configuration file at
+`$XDG_DATA_HOME/kanibako/agents/{id}.toml`.  The file is generated
+automatically on first use (via the target plugin's `generate_agent_config()`
+method) and can be edited afterwards.
+
+```toml
+[agent]
+name = "Claude Code"
+shell = "standard"          # template variant (see Shell Templates)
+default_args = []           # extra CLI args prepended on every launch
+
+[state]
+# model = "opus"            # target-specific knobs (e.g. --model for Claude)
+
+[env]
+# KEY = "value"             # raw env vars injected into the container
+
+[shared]
+# plugins = ".claude/plugins"  # agent-level shared cache paths
+```
+
+**Sections:**
+- `[agent]` — identity and defaults (name, shell template variant, default CLI args)
+- `[state]` — runtime behavior knobs translated by the target plugin into CLI
+  args and env vars (e.g. Claude maps `model` → `--model`)
+- `[env]` — environment variables injected into the container
+- `[shared]` — agent-level shared cache paths (mounted from the per-agent
+  shared directory, independent of global shared caches)
+
+## Shell Templates
+
+Shell templates provide layered home directory initialization for new projects.
+Templates live under `$XDG_DATA_HOME/kanibako/templates/` and are applied
+once during project init.
+
+**Resolution order** (for template variant `standard` and agent `claude`):
+1. `templates/claude/standard/` — agent-specific template
+2. `templates/general/standard/` — general fallback
+3. None — no template files applied
+
+**Layering:**
+1. `templates/general/base/` is copied first (common skeleton)
+2. The resolved template overlays on top
+
+The template variant is controlled by the `shell` field in the agent TOML
+(defaults to `"standard"`).  To customize, create a directory under
+`templates/` matching the desired structure and set `shell` in the agent TOML.
+
 ## Vault
 
 Each project has optional read-only and read-write shared directories:
@@ -310,6 +367,8 @@ Precedence: CLI flag > project.toml > kanibako.toml > hardcoded defaults
 
 - **Global**: `$XDG_CONFIG_HOME/kanibako.toml`
 - **Project**: `boxes/{hash}/project.toml`
+- **Agents**: `$XDG_DATA_HOME/kanibako/agents/{id}.toml`
+- **Templates**: `$XDG_DATA_HOME/kanibako/templates/`
 - **Environment**: `$XDG_DATA_HOME/kanibako/env` (global),
   `boxes/{hash}/env` (project)
 
@@ -320,10 +379,28 @@ kanibako config image myimage:v2    # set project-level image
 kanibako config --clear             # remove all project overrides
 ```
 
+The global config supports a `[paths]` section to override data directory
+layout, and a `[shared]` section for globally shared cache mounts:
+
+```toml
+[paths]
+data_path = ""         # override XDG_DATA_HOME/kanibako
+boxes = "boxes"        # project state subdirectory
+agents = "agents"      # agent TOML subdirectory
+shared = "shared"      # shared caches subdirectory
+templates = "templates"
+
+[shared]
+pip = ".cache/pip"
+cargo = ".cargo/registry"
+npm = ".npm"
+```
+
 | Key | Default | Description |
 |-----|---------|-------------|
 | `container_image` | `ghcr.io/doctorjei/kanibako-base:latest` | Container image |
 | `target_name` | `""` (auto-detect) | Agent target plugin |
+| `paths_data_path` | `""` (XDG default) | Override data directory root |
 
 ## Development
 
@@ -332,8 +409,8 @@ kanibako config --clear             # remove all project overrides
 pip install -e ".[dev]"
 
 # Run tests
-pytest tests/ -v                    # unit tests (732)
-pytest tests/ -v -m integration     # integration tests (39)
+pytest tests/ -v                    # unit tests (845)
+pytest tests/ -v -m integration     # integration tests (35)
 
 # Lint
 ruff check src/ tests/
@@ -357,6 +434,8 @@ git push && git push --tags
 | `workset.py` | Working set data model and persistence |
 | `credentials.py` | Credential sync between host and container |
 | `freshness.py` | Non-blocking image digest comparison |
+| `agents.py` | Agent TOML config: load, write, per-agent settings |
+| `templates.py` | Shell template resolution and application |
 | `targets/` | Agent plugin system (Target ABC + ClaudeTarget) |
 | `commands/` | CLI subcommand implementations |
 | `containers/` | Bundled Containerfiles |
