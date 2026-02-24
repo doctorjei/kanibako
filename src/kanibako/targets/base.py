@@ -83,11 +83,14 @@ class Target(ABC):
         ...
 
     @abstractmethod
-    def init_home(self, home: Path) -> None:
+    def init_home(self, home: Path, *, auth: str = "shared") -> None:
         """Initialize agent-specific files in the project home directory.
 
         Called after kanibako core creates .bashrc/.profile.  The target
         should create its own config directories and files (e.g. .claude/).
+
+        *auth* is ``"shared"`` (copy credentials from host) or ``"distinct"``
+        (skip credential copy — project manages its own credentials).
         """
         ...
 

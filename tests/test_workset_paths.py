@@ -69,18 +69,16 @@ class TestResolveWorksetProject:
         proj = resolve_workset_project(ws, name, std, config, initialize=True)
 
         assert proj.shell_path.is_dir()
-        assert (proj.shell_path / ".claude").is_dir()
 
-    def test_initialize_copies_credentials(
+    def test_initialize_does_not_copy_credentials(
         self, workset_env, std, config, credentials_dir
     ):
+        """Credential copy is now handled by target.init_home(), not during init."""
         ws, name = workset_env
         proj = resolve_workset_project(ws, name, std, config, initialize=True)
 
         creds_file = proj.shell_path / ".claude" / ".credentials.json"
-        assert creds_file.is_file()
-        data = json.loads(creds_file.read_text())
-        assert "claudeAiOauth" in data
+        assert not creds_file.exists()
 
     def test_initialize_bootstraps_shell(
         self, workset_env, std, config, credentials_dir
@@ -150,17 +148,28 @@ class TestResolveWorksetProject:
 # TestWorksetProjectCredentialFlow
 # ---------------------------------------------------------------------------
 
-class TestWorksetProjectCredentialFlow:
-    def test_credential_paths_resolve_into_workset_projects(
+class TestWorksetGlobalSharedPath:
+    def test_workset_has_global_shared_path(
         self, workset_env, std, config, credentials_dir
     ):
+        """Workset projects get a global shared path."""
+        ws, name = workset_env
+        proj = resolve_workset_project(ws, name, std, config, initialize=True)
+
+        expected = std.data_path / config.paths_shared / "global"
+        assert proj.global_shared_path == expected
+
+
+class TestWorksetProjectCredentialFlow:
+    def test_no_credentials_during_init(
+        self, workset_env, std, config, credentials_dir
+    ):
+        """Init no longer copies credentials; that's target.init_home()'s job."""
         ws, name = workset_env
         proj = resolve_workset_project(ws, name, std, config, initialize=True)
 
         creds_file = proj.shell_path / ".claude" / ".credentials.json"
-        assert creds_file.is_file()
-        # Path should be under the workset's projects dir.
-        assert str(ws.projects_dir) in str(creds_file)
+        assert not creds_file.exists()
 
     def test_refresh_host_to_project_works_with_workset_shell_path(
         self, workset_env, std, config, credentials_dir, tmp_home
@@ -172,7 +181,12 @@ class TestWorksetProjectCredentialFlow:
 
         home = tmp_home / "home"
         host_creds = home / ".claude" / ".credentials.json"
-        project_creds = proj.shell_path / ".claude" / ".credentials.json"
+
+        # Create the .claude dir and seed a creds file so refresh can write to it
+        claude_dir = proj.shell_path / ".claude"
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        project_creds = claude_dir / ".credentials.json"
+        project_creds.write_text(json.dumps({"claudeAiOauth": {"token": "old"}}))
 
         # Touch host to ensure it's newer.
         import time

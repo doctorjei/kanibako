@@ -82,6 +82,7 @@ class ProjectPaths:
     layout: ProjectLayout = field(default=ProjectLayout.default)
     vault_enabled: bool = field(default=True)
     auth: str = field(default="shared")
+    global_shared_path: Path | None = field(default=None)
 
 
 def xdg(env_var: str, default_suffix: str) -> Path:
@@ -255,6 +256,7 @@ def resolve_project(
         mode=ProjectMode.account_centric,
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
+        global_shared_path=std.data_path / config.paths_shared / "global",
     )
 
 
@@ -401,14 +403,16 @@ def _init_common(
     project_path: Path,
     *,
     vault_enabled: bool = True,
-    skip_credentials: bool = False,
 ) -> None:
-    """Shared first-time project setup: create directories, copy credentials from host.
+    """Shared first-time project setup: create directories, bootstrap shell.
 
     This helper is called by both ``_init_project`` (account-centric) and
     ``_init_decentralized_project``.  It performs every step common to both
     modes: print message, create metadata and shell dirs, bootstrap the
-    shell, copy credentials, and set up vault directories when enabled.
+    shell, and set up vault directories when enabled.
+
+    Credential copy is handled separately by ``target.init_home()`` in
+    ``start.py``, after template application.
     """
     import sys
 
@@ -423,10 +427,6 @@ def _init_common(
     # Create persistent agent shell (mounted as /home/agent).
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
-
-    # Copy credentials directly from host (skip for distinct auth).
-    if not skip_credentials:
-        _copy_credentials_from_host(shell_path)
 
     # Vault directories (skip when vault is disabled).
     if vault_enabled:
@@ -619,6 +619,7 @@ def resolve_workset_project(
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
         auth=actual_auth,
+        global_shared_path=std.data_path / config.paths_shared / "global",
     )
 
 
@@ -627,12 +628,15 @@ def _init_workset_project(
     metadata_path: Path,
     shell_path: Path,
 ) -> None:
-    """First-time workset project setup: copy credentials and bootstrap shell.
+    """First-time workset project setup: bootstrap shell directory.
 
     Unlike ``_init_project``, this does not write a ``project-path.txt``
     breadcrumb (workset.toml already records source_path) and does not create
     vault ``.gitignore`` files (vault lives under the workset root, not inside
     a user git repo).
+
+    Credential copy is handled separately by ``target.init_home()`` in
+    ``start.py``, after template application.
     """
     import sys
 
@@ -647,9 +651,6 @@ def _init_workset_project(
     # Create persistent agent shell (mounted as /home/agent).
     shell_path.mkdir(parents=True, exist_ok=True)
     _bootstrap_shell(shell_path)
-
-    # Copy credentials directly from host.
-    _copy_credentials_from_host(shell_path)
 
     print("done.", file=sys.stderr)
 
@@ -841,7 +842,6 @@ def resolve_decentralized_project(
             std, metadata_path, shell_path,
             vault_ro_path, vault_rw_path, project_path,
             vault_enabled=actual_vault_enabled,
-            skip_credentials=(actual_auth == "distinct"),
         )
         write_project_meta(
             project_toml,
@@ -874,6 +874,7 @@ def resolve_decentralized_project(
         layout=actual_layout,
         vault_enabled=actual_vault_enabled,
         auth=actual_auth,
+        global_shared_path=None,
     )
 
 
@@ -886,7 +887,6 @@ def _init_decentralized_project(
     project_path: Path,
     *,
     vault_enabled: bool = True,
-    skip_credentials: bool = False,
 ) -> None:
     """First-time decentralized project setup: all state inside project dir.
 
@@ -894,10 +894,12 @@ def _init_decentralized_project(
     breadcrumb (the project is self-contained).  Unlike workset init, this
     *does* create vault directories and a ``.gitignore`` (vault lives inside
     the user's project, likely a git repo).
+
+    Credential copy is handled separately by ``target.init_home()`` in
+    ``start.py``, after template application.
     """
     _init_common(
         std, metadata_path, shell_path,
         vault_ro_path, vault_rw_path, project_path,
         vault_enabled=vault_enabled,
-        skip_credentials=skip_credentials,
     )

@@ -51,6 +51,11 @@ def run(args: argparse.Namespace) -> int:
     containers_dest = data_path / "containers"
     containers_dest.mkdir(parents=True, exist_ok=True)
 
+    # Create template directory structure.
+    templates_dir = data_path / (config.paths_templates or "templates")
+    (templates_dir / "general" / "base").mkdir(parents=True, exist_ok=True)
+    (templates_dir / "general" / "standard").mkdir(parents=True, exist_ok=True)
+
     # ------------------------------------------------------------------
     # 3. Pull or build base container image
     # ------------------------------------------------------------------

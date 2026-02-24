@@ -279,6 +279,13 @@ def _run_container(
         # Upgrade shell (add shell.d support to existing shells).
         _upgrade_shell(proj.shell_path)
 
+        # Template application + agent init for new projects.
+        if proj.is_new and target:
+            from kanibako.templates import apply_shell_template
+            templates_base = std.data_path / merged.paths_templates
+            apply_shell_template(proj.shell_path, templates_base, target.name)
+            target.init_home(proj.shell_path, auth=proj.auth)
+
         # Pre-launch auth check (skip for distinct auth — creds live in project)
         if target and install and proj.auth != "distinct":
             if not target.check_auth():
@@ -305,6 +312,18 @@ def _run_container(
         extra_mounts = []
         if target and install:
             extra_mounts.extend(target.binary_mounts(install))
+
+        # Shared cache mounts (global, lazy — only mount if dir exists)
+        if proj.global_shared_path:
+            from kanibako.targets.base import Mount
+            for cache_name, container_rel in merged.shared_caches.items():
+                host_dir = proj.global_shared_path / cache_name
+                if host_dir.is_dir():
+                    extra_mounts.append(Mount(
+                        source=host_dir,
+                        destination=f"/home/agent/{container_rel}",
+                        options="Z,U",
+                    ))
 
         # Read per-project and global environment variables.
         from kanibako.shellenv import merge_env

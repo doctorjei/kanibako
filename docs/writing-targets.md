@@ -33,7 +33,7 @@ class MyTarget(Target):
     def display_name(self) -> str: ...
     def detect(self) -> AgentInstall | None: ...
     def binary_mounts(self, install: AgentInstall) -> list[Mount]: ...
-    def init_home(self, home: Path) -> None: ...
+    def init_home(self, home: Path, *, auth: str = "shared") -> None: ...
     def check_auth(self) -> bool: ...
     def refresh_credentials(self, home: Path) -> None: ...
     def writeback_credentials(self, home: Path) -> None: ...
@@ -135,26 +135,32 @@ host's agent installation.
 For pip-installed Python tools that don't need binary mounting (they run
 from the container's own Python environment), return an empty list.
 
-### `init_home(home: Path) -> None`
+### `init_home(home: Path, *, auth: str = "shared") -> None`
 
 Initialize agent-specific configuration in the project home directory.
-This is called after kanibako creates the core shell files (`.bashrc`,
-`.profile`).
+Called from `start.py` for new projects (`proj.is_new`), after shell
+template application and target resolution.
 
-**Important:** This method is currently not called by the core launch flow
-and is reserved for future use.  Implementations should be **idempotent** —
-safe to call multiple times on an already-initialized home.
+The `auth` parameter indicates the project's authentication mode:
+- `"shared"` — copy credentials from host (default)
+- `"distinct"` — skip credential copy (project manages its own auth)
+
+Always perform non-credential setup (config directories, default files)
+regardless of auth mode.
 
 Typical work: create config directories, copy/generate default config
-files.
+files, copy credentials from host (if auth is shared).
 
 ```python
-def init_home(self, home: Path) -> None:
+def init_home(self, home: Path, *, auth: str = "shared") -> None:
     config_dir = home / ".config" / "myagent"
     config_dir.mkdir(parents=True, exist_ok=True)
     config_file = config_dir / "config.json"
     if not config_file.exists():
         config_file.write_text("{}\n")
+    if auth != "distinct":
+        # Copy credentials from host
+        ...
 ```
 
 ### `check_auth() -> bool`

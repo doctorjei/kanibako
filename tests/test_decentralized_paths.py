@@ -62,16 +62,15 @@ class TestResolveDecentralizedProject:
         assert proj.metadata_path.is_dir()
         assert proj.shell_path.is_dir()
 
-    def test_initialize_copies_credentials(
+    def test_initialize_does_not_copy_credentials(
         self, std, config, project_dir, credentials_dir,
     ):
+        """Credential copy is now handled by target.init_home(), not during init."""
         proj = resolve_decentralized_project(
             std, config, str(project_dir), initialize=True,
         )
         creds_file = proj.shell_path / ".claude" / ".credentials.json"
-        assert creds_file.is_file()
-        data = json.loads(creds_file.read_text())
-        assert "claudeAiOauth" in data
+        assert not creds_file.exists()
 
     def test_initialize_bootstraps_shell(
         self, std, config, project_dir, credentials_dir,
@@ -158,18 +157,27 @@ class TestResolveDecentralizedProject:
 # TestDecentralizedCredentialFlow
 # ---------------------------------------------------------------------------
 
-class TestDecentralizedCredentialFlow:
-    def test_credential_paths_inside_project(
+class TestDecentralizedGlobalSharedPath:
+    def test_decentralized_has_no_global_shared_path(
         self, std, config, project_dir, credentials_dir,
     ):
+        """Decentralized projects don't get shared caches."""
+        proj = resolve_decentralized_project(
+            std, config, str(project_dir), initialize=True,
+        )
+        assert proj.global_shared_path is None
+
+
+class TestDecentralizedCredentialFlow:
+    def test_no_credentials_during_init(
+        self, std, config, project_dir, credentials_dir,
+    ):
+        """Init no longer copies credentials; that's target.init_home()'s job."""
         proj = resolve_decentralized_project(
             std, config, str(project_dir), initialize=True,
         )
         creds_file = proj.shell_path / ".claude" / ".credentials.json"
-        assert creds_file.is_file()
-        # Path should be under .kanibako/shell/, not $XDG_DATA_HOME.
-        resolved = project_dir.resolve()
-        assert str(resolved / ".kanibako" / "shell") in str(creds_file)
+        assert not creds_file.exists()
 
     def test_refresh_host_to_project_works(
         self, std, config, project_dir, credentials_dir, tmp_home,
@@ -181,7 +189,12 @@ class TestDecentralizedCredentialFlow:
 
         home = tmp_home / "home"
         host_creds = home / ".claude" / ".credentials.json"
-        project_creds = proj.shell_path / ".claude" / ".credentials.json"
+
+        # Create the .claude dir and seed a creds file so refresh can write to it
+        claude_dir = proj.shell_path / ".claude"
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        project_creds = claude_dir / ".credentials.json"
+        project_creds.write_text(json.dumps({"claudeAiOauth": {"token": "old"}}))
 
         # Touch host to ensure it's newer.
         import time

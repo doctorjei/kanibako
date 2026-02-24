@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 # Python 3.11+ stdlib
@@ -54,6 +54,7 @@ class KanibakoConfig:
     paths_ws_hints: str = _DEFAULTS["paths_ws_hints"]
     container_image: str = _DEFAULTS["container_image"]
     target_name: str = _DEFAULTS["target_name"]
+    shared_caches: dict[str, str] = field(default_factory=dict)
 
 
 def _flatten_toml(data: dict, prefix: str = "") -> dict[str, str]:
@@ -119,6 +120,9 @@ def load_config(path: Path) -> KanibakoConfig:
     if path.exists():
         with open(path, "rb") as f:
             data = tomllib.load(f)
+        # Extract [shared] section before flattening (it's a key-value dict,
+        # not nested config fields).
+        shared = data.pop("shared", {})
         flat = _flatten_toml(data)
         valid_keys = {fld.name for fld in fields(cfg)}
         for k, v in flat.items():
@@ -126,6 +130,7 @@ def load_config(path: Path) -> KanibakoConfig:
             k = _FIELD_ALIASES.get(k, k)
             if k in valid_keys:
                 setattr(cfg, k, v)
+        cfg.shared_caches = {k: str(v) for k, v in shared.items()}
     return cfg
 
 
@@ -173,6 +178,14 @@ def write_global_config(path: Path, cfg: KanibakoConfig | None = None) -> None:
         "",
         "[container]",
         f'image = "{cfg.container_image}"',
+        "",
+        "[shared]",
+        '# Global shared caches (lazy: only mounted if dir exists on host)',
+        '# cargo-git = ".cargo/git"',
+        '# cargo-reg = ".cargo/registry"',
+        '# npm = ".cache/npm"',
+        '# pip = ".cache/pip"',
+        '# uv = ".cache/uv"',
         "",
     ]
     path.write_text("\n".join(lines))

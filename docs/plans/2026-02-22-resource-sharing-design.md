@@ -1,6 +1,9 @@
 # Resource Sharing Design
 
 Date: 2026-02-22
+**Status:** Superseded by `2026-02-23-redesign-config-agents-sharing.md` and
+`2026-02-23-templates-and-shared-caches.md` for sharing hierarchy and directory
+layout. The Claude resource map (`.claude/` breakdown) remains valid reference.
 
 ## Goal
 

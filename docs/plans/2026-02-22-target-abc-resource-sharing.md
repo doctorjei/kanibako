@@ -2,6 +2,10 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** Complete (2026-02-22). Note: `init_home()` signature is changing
+to `init_home(home, *, auth="shared")` as part of the redesign — see
+`2026-02-23-templates-and-shared-caches.md`.
+
 **Goal:** Extend the Target ABC with methods for declaring shared vs. project-scoped resources, so kanibako can split agent home directories into shared and per-project portions.
 
 **Architecture:** Three new methods on the `Target` ABC with sensible defaults (everything project-scoped). `ClaudeTarget` overrides them per the resource sharing design doc. No mount or init changes yet — this is interface-only.

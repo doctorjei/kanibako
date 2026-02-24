@@ -134,7 +134,7 @@ class TestConfigGet:
             assert rc == 0
             captured = capsys.readouterr()
             expected = getattr(KanibakoConfig(), fld.name)
-            assert expected in captured.out
+            assert str(expected) in captured.out
 
 
 class TestConfigSet:

@@ -387,7 +387,6 @@ class TestResolveAnyProject:
 
         assert proj.mode is ProjectMode.workset
         assert proj.shell_path.is_dir()
-        assert (proj.shell_path / ".claude").is_dir()
 
 
 class TestFindWorksetForPath:
@@ -621,3 +620,26 @@ class TestUpgradeShell:
         assert ".shell.d/" in content
         lines = content.splitlines()
         assert lines[0] == "# no trailing newline"
+
+
+class TestGlobalSharedPath:
+    """Tests for global_shared_path on ProjectPaths."""
+
+    def test_ac_has_global_shared_path(self, config_file, tmp_home, credentials_dir):
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_project(std, config, project_dir=project_dir, initialize=True)
+
+        expected = std.data_path / config.paths_shared / "global"
+        assert proj.global_shared_path == expected
+
+    def test_ac_no_init_has_global_shared_path(self, config_file, tmp_home):
+        config = load_config(config_file)
+        std = load_std_paths(config)
+        project_dir = str(tmp_home / "project")
+        proj = resolve_project(std, config, project_dir=project_dir, initialize=False)
+
+        assert proj.global_shared_path is not None
+        assert "shared" in str(proj.global_shared_path)
+        assert str(proj.global_shared_path).endswith("/global")

@@ -93,7 +93,7 @@ class TestTargetABC:
             def binary_mounts(self, install):
                 return []
 
-            def init_home(self, home):
+            def init_home(self, home, *, auth="shared"):
                 pass
 
             def refresh_credentials(self, home):
@@ -131,7 +131,7 @@ class TestTargetABC:
             def binary_mounts(self, install):
                 return []
 
-            def init_home(self, home):
+            def init_home(self, home, *, auth="shared"):
                 pass
 
             def refresh_credentials(self, home):

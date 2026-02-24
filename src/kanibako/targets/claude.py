@@ -74,26 +74,31 @@ class ClaudeTarget(Target):
             ),
         ]
 
-    def init_home(self, home: Path) -> None:
+    def init_home(self, home: Path, *, auth: str = "shared") -> None:
         """Initialize Claude-specific files in the project home.
 
-        Creates ``.claude/`` directory and copies filtered ``.claude.json``
-        and ``.credentials.json`` from the host.
+        Creates ``.claude/`` directory.  When *auth* is ``"shared"``, copies
+        credentials and filtered settings from the host.  When ``"distinct"``,
+        skips credential copy (project manages its own auth).
         """
         claude_dir = home / ".claude"
         claude_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy credentials from host ~/.claude/.credentials.json
-        host_creds = Path.home() / ".claude" / ".credentials.json"
-        if host_creds.is_file():
-            shutil.copy2(str(host_creds), str(claude_dir / ".credentials.json"))
+        if auth != "distinct":
+            # Copy credentials from host ~/.claude/.credentials.json
+            host_creds = Path.home() / ".claude" / ".credentials.json"
+            if host_creds.is_file():
+                shutil.copy2(str(host_creds), str(claude_dir / ".credentials.json"))
 
-        # Copy filtered .claude.json from host
-        host_settings = Path.home() / ".claude.json"
-        if host_settings.is_file():
-            from kanibako.credentials import filter_settings
-            filter_settings(host_settings, home / ".claude.json")
+            # Copy filtered .claude.json from host
+            host_settings = Path.home() / ".claude.json"
+            if host_settings.is_file():
+                from kanibako.credentials import filter_settings
+                filter_settings(host_settings, home / ".claude.json")
+            else:
+                (home / ".claude.json").touch()
         else:
+            # Distinct auth: create empty .claude.json
             (home / ".claude.json").touch()
 
     def check_auth(self) -> bool:

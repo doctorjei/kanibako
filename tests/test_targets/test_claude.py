@@ -147,6 +147,47 @@ class TestInitHome:
         assert "dangerousKey" not in result
 
 
+class TestInitHomeDistinctAuth:
+    def test_distinct_auth_skips_credential_copy(self, tmp_path, monkeypatch):
+        """init_home with auth='distinct' skips credential copy."""
+        home = tmp_path / "home"
+        home.mkdir()
+
+        fake_home = tmp_path / "fake_user_home"
+        (fake_home / ".claude").mkdir(parents=True)
+        creds = {"claudeAiOauth": {"token": "test"}}
+        (fake_home / ".claude" / ".credentials.json").write_text(json.dumps(creds))
+        (fake_home / ".claude.json").write_text(json.dumps({"oauthAccount": "x"}))
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+
+        t = ClaudeTarget()
+        t.init_home(home, auth="distinct")
+
+        assert (home / ".claude").is_dir()
+        assert not (home / ".claude" / ".credentials.json").exists()
+        # Empty .claude.json is created
+        assert (home / ".claude.json").exists()
+        assert (home / ".claude.json").read_text() == ""
+
+    def test_shared_auth_copies_credentials(self, tmp_path, monkeypatch):
+        """init_home with auth='shared' (default) copies credentials."""
+        home = tmp_path / "home"
+        home.mkdir()
+
+        fake_home = tmp_path / "fake_user_home"
+        (fake_home / ".claude").mkdir(parents=True)
+        creds = {"claudeAiOauth": {"token": "test"}}
+        (fake_home / ".claude" / ".credentials.json").write_text(json.dumps(creds))
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+
+        t = ClaudeTarget()
+        t.init_home(home, auth="shared")
+
+        copied = home / ".claude" / ".credentials.json"
+        assert copied.is_file()
+        assert json.loads(copied.read_text())["claudeAiOauth"]["token"] == "test"
+
+
 class TestBuildCliArgs:
     def test_default(self):
         t = ClaudeTarget()

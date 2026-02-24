@@ -283,3 +283,63 @@ class TestMigrateConfig:
         migrate_config(tmp_path)
         assert old_dir.exists()
         assert (old_dir / "other.txt").exists()
+
+
+class TestSharedCaches:
+    def test_shared_section_parsed(self, tmp_path):
+        """[shared] entries populate shared_caches dict."""
+        path = tmp_path / "kanibako.toml"
+        path.write_text(
+            '[paths]\ndata_path = ""\n\n'
+            '[container]\nimage = "test:latest"\n\n'
+            '[shared]\ncargo-git = ".cargo/git"\npip = ".cache/pip"\n'
+        )
+        cfg = load_config(path)
+        assert cfg.shared_caches == {"cargo-git": ".cargo/git", "pip": ".cache/pip"}
+
+    def test_shared_section_not_flattened(self, tmp_path):
+        """[shared] keys don't produce shared_* flat keys on KanibakoConfig."""
+        path = tmp_path / "kanibako.toml"
+        path.write_text(
+            '[shared]\ncargo-git = ".cargo/git"\n'
+        )
+        cfg = load_config(path)
+        # shared_caches is populated correctly
+        assert cfg.shared_caches == {"cargo-git": ".cargo/git"}
+        # No spurious attributes
+        assert not hasattr(cfg, "shared_cargo-git")
+
+    def test_no_shared_section(self, tmp_path):
+        """shared_caches defaults to empty dict when [shared] is absent."""
+        path = tmp_path / "kanibako.toml"
+        path.write_text('[paths]\ndata_path = ""\n')
+        cfg = load_config(path)
+        assert cfg.shared_caches == {}
+
+    def test_nonexistent_file(self):
+        """shared_caches defaults to empty dict for missing config file."""
+        from pathlib import Path
+        cfg = load_config(Path("/nonexistent/kanibako.toml"))
+        assert cfg.shared_caches == {}
+
+    def test_write_global_config_includes_shared(self, tmp_path):
+        """write_global_config includes a [shared] section."""
+        path = tmp_path / "kanibako.toml"
+        write_global_config(path)
+        text = path.read_text()
+        assert "[shared]" in text
+
+    def test_merged_config_preserves_shared_caches(self, tmp_path):
+        """load_merged_config preserves shared_caches from global config."""
+        global_path = tmp_path / "global.toml"
+        global_path.write_text(
+            '[paths]\ndata_path = ""\n\n'
+            '[container]\nimage = "test:latest"\n\n'
+            '[shared]\npip = ".cache/pip"\n'
+        )
+        project_path = tmp_path / "project.toml"
+        project_path.write_text('[container]\nimage = "proj:v1"\n')
+
+        merged = load_merged_config(global_path, project_path)
+        assert merged.shared_caches == {"pip": ".cache/pip"}
+        assert merged.container_image == "proj:v1"

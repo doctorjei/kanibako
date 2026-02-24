@@ -639,9 +639,11 @@ class TestBoxConvert:
         project_dir.mkdir()
         proj = resolve_project(std, config, project_dir=str(project_dir), initialize=True)
 
-        # Credentials should have been copied into home/.claude/.
+        # Seed credentials manually (init no longer copies them; target.init_home does).
+        import json
         creds_file = proj.shell_path / ".claude" / ".credentials.json"
-        assert creds_file.exists()
+        creds_file.parent.mkdir(parents=True, exist_ok=True)
+        creds_file.write_text(json.dumps({"claudeAiOauth": {"token": "test-token"}}))
         original_creds = creds_file.read_text()
 
         args = self._convert_args(project_dir, "decentralized")
